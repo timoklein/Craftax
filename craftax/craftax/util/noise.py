@@ -55,7 +55,7 @@ def generate_fractal_noise_2d(
     interpolant=interpolant,
     override_angles=None,
 ):
-    noise = jnp.zeros(shape)
+    noise = jnp.zeros(shape, dtype=jnp.float32)
     frequency = 1
     amplitude = 1
     for _ in range(octaves):

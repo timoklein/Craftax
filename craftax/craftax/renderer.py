@@ -1,5 +1,6 @@
-import jax
 from functools import partial
+
+import jax
 
 from craftax.craftax.constants import *
 from craftax.craftax.craftax_state import EnvState
@@ -21,7 +22,9 @@ def render_craftax_symbolic(state: EnvState):
     tl_corner = state.player_position - obs_dim_array // 2 + MAX_OBS_DIM + 2
 
     map_view = jax.lax.dynamic_slice(padded_grid, tl_corner, OBS_DIM)
-    map_view_one_hot = jax.nn.one_hot(map_view, num_classes=len(BlockType))
+    map_view_one_hot = jax.nn.one_hot(
+        map_view, num_classes=len(BlockType), dtype=jnp.float32
+    )
 
     # Items
     padded_items_map = jnp.pad(
@@ -31,7 +34,9 @@ def render_craftax_symbolic(state: EnvState):
     )
 
     item_map_view = jax.lax.dynamic_slice(padded_items_map, tl_corner, OBS_DIM)
-    item_map_view_one_hot = jax.nn.one_hot(item_map_view, num_classes=len(ItemType))
+    item_map_view_one_hot = jax.nn.one_hot(
+        item_map_view, num_classes=len(ItemType), dtype=jnp.float32
+    )
 
     # Mobs
     mob_types_per_class = 8
@@ -45,10 +50,11 @@ def render_craftax_symbolic(state: EnvState):
         local_position = (
             mobs.position[mob_index]
             - state.player_position
-            + jnp.array([OBS_DIM[0], OBS_DIM[1]]) // 2
+            + jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32) // 2
         )
         on_screen = jnp.logical_and(
-            local_position >= 0, local_position < jnp.array([OBS_DIM[0], OBS_DIM[1]])
+            local_position >= 0,
+            local_position < jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32),
         ).all()
         on_screen *= mobs.mask[mob_index]
 
@@ -149,9 +155,9 @@ def render_craftax_symbolic(state: EnvState):
         ]
     ).astype(jnp.float32)
 
-    potions = jnp.sqrt(state.inventory.potions) / 10.0
-    armour = state.inventory.armour / 2.0
-    armour_enchantments = state.armour_enchantments
+    potions = (jnp.sqrt(state.inventory.potions) / 10.0).astype(jnp.float32)
+    armour = (state.inventory.armour / 2.0).astype(jnp.float32)
+    armour_enchantments = state.armour_enchantments.astype(jnp.float32)
 
     intrinsics = jnp.array(
         [
@@ -167,7 +173,9 @@ def render_craftax_symbolic(state: EnvState):
         ]
     ).astype(jnp.float32)
 
-    direction = jax.nn.one_hot(state.player_direction - 1, num_classes=4)
+    direction = jax.nn.one_hot(
+        state.player_direction - 1, num_classes=4, dtype=jnp.float32
+    )
 
     special_values = jnp.array(
         [
@@ -179,7 +187,8 @@ def render_craftax_symbolic(state: EnvState):
             state.player_level / 10.0,
             state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL,
             is_boss_vulnerable(state),
-        ]
+        ],
+        dtype=jnp.float32,
     )
 
     all_flattened = jnp.concatenate(
@@ -223,7 +232,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     map_view = jax.lax.dynamic_slice(padded_grid, tl_corner, OBS_DIM)
 
     # Boss
-    boss_block = jax.lax.select(
+    boss_block = jnp.where(
         is_boss_vulnerable(state),
         BlockType.NECROMANCER_VULNERABLE.value,
         BlockType.NECROMANCER.value,
@@ -271,7 +280,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     is_ladder_down_open = (
         state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL
     )
-    ladder_down_item = jax.lax.select(
+    ladder_down_item = jnp.where(
         is_ladder_down_open,
         ItemType.LADDER_DOWN.value,
         ItemType.LADDER_DOWN_BLOCKED.value,
@@ -295,7 +304,10 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         full_map_texture = textures["full_map_item_textures"][item_index]
         mask = map_pixels_item_indexes == item_index
 
-        pixels = pixels * (1 - full_map_texture[:, :, 3] * mask[:, :, 0])[:, :, None]
+        pixels = (
+            pixels
+            * (jnp.float32(1) - full_map_texture[:, :, 3] * mask[:, :, 0])[:, :, None]
+        )
         pixels = (
             pixels
             + full_map_texture[:, :, :3] * mask * full_map_texture[:, :, 3][:, :, None]
@@ -308,12 +320,13 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     )
 
     # Render player
-    player_texture_index = jax.lax.select(
-        state.is_sleeping, 4, state.player_direction - 1
-    )
+    player_texture_index = jnp.where(state.is_sleeping, 4, state.player_direction - 1)
     map_pixels = (
         map_pixels
-        * (1 - textures["full_map_player_textures_alpha"][player_texture_index])
+        * (
+            jnp.float32(1)
+            - textures["full_map_player_textures_alpha"][player_texture_index]
+        )
         + textures["full_map_player_textures"][player_texture_index]
         * textures["full_map_player_textures_alpha"][player_texture_index]
     )
@@ -340,7 +353,9 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
 
         melee_mob_texture = melee_mob_texture * on_screen
 
-        melee_mob_texture_with_background = 1 - melee_mob_texture_alpha * on_screen
+        melee_mob_texture_with_background = (
+            jnp.float32(1) - melee_mob_texture_alpha * on_screen
+        )
 
         melee_mob_texture_with_background = (
             melee_mob_texture_with_background
@@ -431,12 +446,12 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             projectile_directions[state.player_level, projectile_index, 1] > 0,
         )
 
-        projectile_texture = jax.lax.select(
+        projectile_texture = jnp.where(
             flip_projectile,
             flipped_projectile_texture,
             projectile_texture,
         )
-        projectile_texture_alpha = jax.lax.select(
+        projectile_texture_alpha = jnp.where(
             flip_projectile,
             flipped_projectile_texture_alpha,
             projectile_texture_alpha,
@@ -447,19 +462,21 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             projectile_texture_alpha, (1, 0, 2)
         )
 
-        projectile_texture = jax.lax.select(
+        projectile_texture = jnp.where(
             projectile_directions[state.player_level, projectile_index, 1] != 0,
             transposed_projectile_texture,
             projectile_texture,
         )
-        projectile_texture_alpha = jax.lax.select(
+        projectile_texture_alpha = jnp.where(
             projectile_directions[state.player_level, projectile_index, 1] != 0,
             transposed_projectile_texture_alpha,
             projectile_texture_alpha,
         )
 
         projectile_texture = projectile_texture * on_screen
-        projectile_texture_with_background = 1 - projectile_texture_alpha * on_screen
+        projectile_texture_with_background = (
+            jnp.float32(1) - projectile_texture_alpha * on_screen
+        )
 
         projectile_texture_with_background = (
             projectile_texture_with_background
@@ -521,7 +538,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     # Apply night
     night_pixels = textures["night_texture"]
     daylight = state.light_level
-    daylight = jax.lax.select(state.player_level == 0, daylight, 1.0)
+    daylight = jnp.where(state.player_level == 0, daylight, jnp.float32(1.0))
 
     if do_night_noise:
         night_noise = (
@@ -529,35 +546,37 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         )
         night_noise = jnp.expand_dims(night_noise, axis=-1).repeat(3, axis=-1)
 
-        night_intensity = 2 * (0.5 - daylight)
-        night_intensity = jnp.maximum(night_intensity, 0.0)
+        night_intensity = 2 * (jnp.float32(0.5) - daylight)
+        night_intensity = jnp.maximum(night_intensity, jnp.float32(0.0))
         night_mask = textures["night_noise_intensity_texture"] * night_intensity
-        night = (1.0 - night_mask) * map_pixels + night_mask * night_noise
+        night = (jnp.float32(1.0) - night_mask) * map_pixels + night_mask * night_noise
 
-        night = night_pixels * 0.5 + 0.5 * night
-        map_pixels = daylight * map_pixels + (1 - daylight) * night
+        night = night_pixels * jnp.float32(0.5) + jnp.float32(0.5) * night
+        map_pixels = daylight * map_pixels + (jnp.float32(1) - daylight) * night
     else:
-        night_noise = jnp.ones(night_pixels.shape[:2]) * 64
+        night_noise = jnp.ones(night_pixels.shape[:2], dtype=jnp.float32) * 64
         night_noise = jnp.expand_dims(night_noise, axis=-1).repeat(3, axis=-1)
 
-        night_intensity = 2 * (0.5 - daylight)
-        night_intensity = jnp.maximum(night_intensity, 0.0)
+        night_intensity = 2 * (jnp.float32(0.5) - daylight)
+        night_intensity = jnp.maximum(night_intensity, jnp.float32(0.0))
         night_mask = (
             jnp.ones_like(textures["night_noise_intensity_texture"])
             * night_intensity
-            * 0.5
+            * jnp.float32(0.5)
         )
-        night = (1.0 - night_mask) * map_pixels + night_mask * night_noise
+        night = (jnp.float32(1.0) - night_mask) * map_pixels + night_mask * night_noise
 
-        night = night_pixels * 0.5 + 0.5 * night
-        map_pixels = daylight * map_pixels + (1 - daylight) * night
+        night = night_pixels * jnp.float32(0.5) + jnp.float32(0.5) * night
+        map_pixels = daylight * map_pixels + (jnp.float32(1) - daylight) * night
         # map_pixels = daylight * map_pixels
         # night_noise = jnp.ones(night_pixels.shape[:2]) * 64
 
     # Apply sleep
     sleep_pixels = jnp.zeros_like(map_pixels)
-    sleep_level = 1.0 - state.is_sleeping * 0.5
-    map_pixels = sleep_level * map_pixels + (1 - sleep_level) * sleep_pixels
+    sleep_level = jnp.float32(1.0) - state.is_sleeping * jnp.float32(0.5)
+    map_pixels = (
+        sleep_level * map_pixels + (jnp.float32(1) - sleep_level) * sleep_pixels
+    )
 
     # Render mob map
     # mob_map_pixels = (
@@ -592,7 +611,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         pixels = pixels.at[
             y * block_pixel_size + number_offset : (y + 1) * block_pixel_size,
             x * block_pixel_size + number_offset : (x + 1) * block_pixel_size,
-        ].mul(1 - textures["number_textures_alpha"][number])
+        ].mul(jnp.float32(1) - textures["number_textures_alpha"][number])
 
         pixels = pixels.at[
             y * block_pixel_size + number_offset : (y + 1) * block_pixel_size,
@@ -605,13 +624,13 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         tens = number // 10
         ones = number % 10
 
-        ones_textures = jax.lax.select(
+        ones_textures = jnp.where(
             number == 0,
             textures["number_textures"],
             textures["number_textures_with_zero"],
         )
 
-        ones_textures_alpha = jax.lax.select(
+        ones_textures_alpha = jnp.where(
             number == 0,
             textures["number_textures_alpha"],
             textures["number_textures_alpha_with_zero"],
@@ -620,7 +639,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         pixels = pixels.at[
             y * block_pixel_size + number_offset : (y + 1) * block_pixel_size,
             x * block_pixel_size + number_offset : (x + 1) * block_pixel_size,
-        ].mul(1 - ones_textures_alpha[ones])
+        ].mul(jnp.float32(1) - ones_textures_alpha[ones])
 
         pixels = pixels.at[
             y * block_pixel_size + number_offset : (y + 1) * block_pixel_size,
@@ -632,7 +651,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             x * block_pixel_size
             + number_double_offset : x * block_pixel_size
             + number_offset,
-        ].mul(1 - textures["number_textures_alpha"][tens])
+        ].mul(jnp.float32(1) - textures["number_textures_alpha"][tens])
 
         pixels = pixels.at[
             y * block_pixel_size + number_offset : (y + 1) * block_pixel_size,
@@ -664,7 +683,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         ]
 
         new_slice = (
-            existing_slice * (1 - texture[:, :, 3][:, :, None])
+            existing_slice * (jnp.float32(1) - texture[:, :, 3][:, :, None])
             + texture[:, :, :3] * texture[:, :, 3][:, :, None]
         )
 
@@ -678,8 +697,8 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         ].set(new_slice)
 
     # Render player stats
-    player_health = jnp.maximum(jnp.floor(state.player_health), 1).astype(int)
-    health_texture = jax.lax.select(
+    player_health = jnp.maximum(jnp.floor(state.player_health), 1).astype(jnp.int32)
+    health_texture = jnp.where(
         player_health > 0,
         textures["health_texture"],
         textures["smaller_empty_texture"],
@@ -687,7 +706,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, health_texture, 0, 0)
     inv_pixels = _render_two_digit_number(inv_pixels, player_health, 0, 0)
 
-    hunger_texture = jax.lax.select(
+    hunger_texture = jnp.where(
         state.player_food > 0,
         textures["hunger_texture"],
         textures["smaller_empty_texture"],
@@ -695,7 +714,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, hunger_texture, 1, 0)
     inv_pixels = _render_two_digit_number(inv_pixels, state.player_food, 1, 0)
 
-    thirst_texture = jax.lax.select(
+    thirst_texture = jnp.where(
         state.player_drink > 0,
         textures["thirst_texture"],
         textures["smaller_empty_texture"],
@@ -703,7 +722,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, thirst_texture, 2, 0)
     inv_pixels = _render_two_digit_number(inv_pixels, state.player_drink, 2, 0)
 
-    energy_texture = jax.lax.select(
+    energy_texture = jnp.where(
         state.player_energy > 0,
         textures["energy_texture"],
         textures["smaller_empty_texture"],
@@ -711,7 +730,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, energy_texture, 3, 0)
     inv_pixels = _render_two_digit_number(inv_pixels, state.player_energy, 3, 0)
 
-    mana_texture = jax.lax.select(
+    mana_texture = jnp.where(
         state.player_mana > 0,
         textures["mana_texture"],
         textures["smaller_empty_texture"],
@@ -721,7 +740,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
 
     # Render inventory
 
-    inv_wood_texture = jax.lax.select(
+    inv_wood_texture = jnp.where(
         state.inventory.wood > 0,
         textures["smaller_block_textures"][BlockType.WOOD.value],
         textures["smaller_empty_texture"],
@@ -729,7 +748,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, inv_wood_texture, 0, 2)
     inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.wood, 0, 2)
 
-    inv_stone_texture = jax.lax.select(
+    inv_stone_texture = jnp.where(
         state.inventory.stone > 0,
         textures["smaller_block_textures"][BlockType.STONE.value],
         textures["smaller_empty_texture"],
@@ -737,7 +756,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, inv_stone_texture, 1, 2)
     inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.stone, 1, 2)
 
-    inv_coal_texture = jax.lax.select(
+    inv_coal_texture = jnp.where(
         state.inventory.coal > 0,
         textures["smaller_block_textures"][BlockType.COAL.value],
         textures["smaller_empty_texture"],
@@ -745,7 +764,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, inv_coal_texture, 0, 1)
     inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.coal, 0, 1)
 
-    inv_iron_texture = jax.lax.select(
+    inv_iron_texture = jnp.where(
         state.inventory.iron > 0,
         textures["smaller_block_textures"][BlockType.IRON.value],
         textures["smaller_empty_texture"],
@@ -753,7 +772,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, inv_iron_texture, 1, 1)
     inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.iron, 1, 1)
 
-    inv_diamond_texture = jax.lax.select(
+    inv_diamond_texture = jnp.where(
         state.inventory.diamond > 0,
         textures["smaller_block_textures"][BlockType.DIAMOND.value],
         textures["smaller_empty_texture"],
@@ -761,7 +780,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, inv_diamond_texture, 2, 1)
     inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.diamond, 2, 1)
 
-    inv_sapphire_texture = jax.lax.select(
+    inv_sapphire_texture = jnp.where(
         state.inventory.sapphire > 0,
         textures["smaller_block_textures"][BlockType.SAPPHIRE.value],
         textures["smaller_empty_texture"],
@@ -769,7 +788,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, inv_sapphire_texture, 3, 1)
     inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.sapphire, 3, 1)
 
-    inv_ruby_texture = jax.lax.select(
+    inv_ruby_texture = jnp.where(
         state.inventory.ruby > 0,
         textures["smaller_block_textures"][BlockType.RUBY.value],
         textures["smaller_empty_texture"],
@@ -777,7 +796,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, inv_ruby_texture, 4, 1)
     inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.ruby, 4, 1)
 
-    inv_sapling_texture = jax.lax.select(
+    inv_sapling_texture = jnp.where(
         state.inventory.sapling > 0,
         textures["sapling_texture"],
         textures["smaller_empty_texture"],
@@ -798,7 +817,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     bow_texture = textures["bow_textures"][state.inventory.bow]
     inv_pixels = _render_icon(inv_pixels, bow_texture, 6, 1)
 
-    arrow_texture = jax.lax.select(
+    arrow_texture = jnp.where(
         state.inventory.arrows > 0,
         textures["player_projectile_textures"][0],
         textures["smaller_empty_texture"],
@@ -812,7 +831,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         inv_pixels = _render_icon(inv_pixels, armour_texture, 7, i)
 
     # Torch
-    torch_texture = jax.lax.select(
+    torch_texture = jnp.where(
         state.inventory.torches > 0,
         textures["torch_inv_texture"],
         textures["smaller_empty_texture"],
@@ -823,7 +842,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     # Potions
     potion_names = ["red", "green", "blue", "pink", "cyan", "yellow"]
     for potion_index, potion_name in enumerate(potion_names):
-        potion_texture = jax.lax.select(
+        potion_texture = jnp.where(
             state.inventory.potions[potion_index] > 0,
             textures["potion_textures"][potion_index],
             textures["smaller_empty_texture"],
@@ -834,7 +853,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         )
 
     # Books
-    book_texture = jax.lax.select(
+    book_texture = jnp.where(
         state.inventory.books > 0,
         textures["book_texture"],
         textures["smaller_empty_texture"],
@@ -843,14 +862,14 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.books, 3, 2)
 
     # Learned spells
-    fireball_texture = jax.lax.select(
+    fireball_texture = jnp.where(
         state.learned_spells[0],
         textures["fireball_inv_texture"],
         textures["smaller_empty_texture"],
     )
     inv_pixels = _render_icon(inv_pixels, fireball_texture, 4, 2)
 
-    iceball_texture = jax.lax.select(
+    iceball_texture = jnp.where(
         state.learned_spells[1],
         textures["iceball_inv_texture"],
         textures["smaller_empty_texture"],
@@ -881,7 +900,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_digit(inv_pixels, state.player_level, 6, 0)
 
     # Attributes
-    xp_texture = jax.lax.select(
+    xp_texture = jnp.where(
         state.player_xp > 0, textures["xp_texture"], textures["smaller_empty_texture"]
     )
     inv_pixels = _render_icon(inv_pixels, xp_texture, 9, 0)
@@ -902,7 +921,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     # # Downscale by 2
     # pixels = pixels[::downscale, ::downscale]
 
-    return pixels
+    return pixels.astype(jnp.float32)
 
 
 def render_craftax_text(state: EnvState):
@@ -945,10 +964,11 @@ def render_craftax_text(state: EnvState):
         local_position = (
             mobs.position[mob_index]
             - state.player_position
-            + jnp.array([OBS_DIM[0], OBS_DIM[1]]) // 2
+            + jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32) // 2
         )
         on_screen = jnp.logical_and(
-            local_position >= 0, local_position < jnp.array([OBS_DIM[0], OBS_DIM[1]])
+            local_position >= 0,
+            local_position < jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32),
         ).all()
         on_screen *= mobs.mask[mob_index]
 

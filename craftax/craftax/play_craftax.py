@@ -1,28 +1,26 @@
+import argparse
 import bz2
 import pickle
 import sys
 import time
 from pathlib import Path
-
-import argparse
 from typing import Any
-
-import pygame
 
 import jax
 import jax.numpy as jnp
 import numpy as np
+import pygame
 
 from craftax.craftax.constants import (
-    OBS_DIM,
     BLOCK_PIXEL_SIZE_HUMAN,
     INVENTORY_OBS_HEIGHT,
-    Action,
+    OBS_DIM,
     Achievement,
+    Action,
 )
 from craftax.craftax.envs.craftax_symbolic_env import CraftaxSymbolicEnv as CraftaxEnv
-from craftax.craftax_env import make_craftax_env_from_name
 from craftax.craftax.renderer import render_craftax_pixels
+from craftax.craftax_env import make_craftax_env_from_name
 
 KEY_MAPPING = {
     pygame.K_q: Action.NOOP,

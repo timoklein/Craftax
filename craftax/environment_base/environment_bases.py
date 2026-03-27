@@ -1,8 +1,8 @@
 from dataclasses import dataclass
+from functools import partial
+from typing import Union
 
 import jax
-from typing import Union
-from functools import partial
 
 
 class EnvironmentNoAutoReset(object):

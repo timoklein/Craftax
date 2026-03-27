@@ -116,13 +116,15 @@ def attack_mob(state, position, damage_vector, can_eat):
         0,
     )
 
-    new_food = jax.lax.select(
+    new_food = jnp.where(
         jnp.logical_and(did_kill_passive_mob, can_eat),
         jnp.minimum(get_max_food(state), state.player_food + 6),
         state.player_food,
     )
-    new_hunger = jax.lax.select(
-        jnp.logical_and(did_kill_passive_mob, can_eat), 0.0, state.player_hunger
+    new_hunger = jnp.where(
+        jnp.logical_and(did_kill_passive_mob, can_eat),
+        jnp.float32(0.0),
+        state.player_hunger,
     )
 
     state = state.replace(
@@ -190,22 +192,22 @@ def spawn_projectile(
     new_projectile_index = jnp.argmax(
         jnp.logical_not(projectiles.mask[state.player_level])
     )
-    new_projectile_position = jax.lax.select(
+    new_projectile_position = jnp.where(
         is_spawning_projectile,
         new_projectile_position,
         projectiles.position[state.player_level, new_projectile_index],
     )
-    new_projectile_mask = jax.lax.select(
+    new_projectile_mask = jnp.where(
         is_spawning_projectile,
         True,
         projectiles.mask[state.player_level, new_projectile_index],
     )
-    new_projectile_direction = jax.lax.select(
+    new_projectile_direction = jnp.where(
         is_spawning_projectile,
         direction,
         projectile_directions[state.player_level, new_projectile_index],
     )
-    new_projectile_type = jax.lax.select(
+    new_projectile_type = jnp.where(
         is_spawning_projectile,
         projectile_type,
         projectiles.type_id[state.player_level, new_projectile_index],
@@ -233,9 +235,9 @@ def spawn_projectile(
 def get_damage_done_to_player(state, static_params, damage_vector):
     scaled_defenses = jnp.stack(
         [
-            state.inventory.armour * 0.1,
-            (state.armour_enchantments == 1) * 0.2,
-            (state.armour_enchantments == 2) * 0.2,
+            state.inventory.armour * jnp.float32(0.1),
+            (state.armour_enchantments == 1) * jnp.float32(0.2),
+            (state.armour_enchantments == 2) * jnp.float32(0.2),
         ],
         axis=0,
     )
@@ -255,16 +257,16 @@ def get_player_damage_vector(state):
         dtype=jnp.int32,
     )
     physical_damage = physical_damages[state.inventory.sword]
-    fire_damage = physical_damage * (state.sword_enchantment == 1) * 0.5
-    ice_damage = physical_damage * (state.sword_enchantment == 2) * 0.5
+    fire_damage = physical_damage * (state.sword_enchantment == 1) * jnp.float32(0.5)
+    ice_damage = physical_damage * (state.sword_enchantment == 2) * jnp.float32(0.5)
 
-    physical_damage *= 1 + 0.25 * (
+    physical_damage *= 1 + jnp.float32(0.25) * (
         state.player_strength - 1
     )  # Strength=5 does double damage
-    fire_damage *= 1 + 0.05 * (
+    fire_damage *= 1 + jnp.float32(0.05) * (
         state.player_intelligence - 1
     )  # Int=5 does 25% more enchant damage
-    ice_damage *= 1 + 0.05 * (
+    ice_damage *= 1 + jnp.float32(0.05) * (
         state.player_intelligence - 1
     )  # Int=5 does 25% more enchant damage
 
@@ -272,7 +274,7 @@ def get_player_damage_vector(state):
 
 
 def get_damage(damage_vector, defense_vector):
-    damages = (1.0 - defense_vector) * damage_vector
+    damages = (jnp.float32(1.0) - defense_vector) * damage_vector
 
     return damages.sum()
 
@@ -347,7 +349,7 @@ def is_near_block(state, block_type):
 
 
 def calculate_light_level(timestep, params):
-    progress = (timestep / params.day_length) % 1 + 0.3
+    progress = (timestep / params.day_length) % 1 + jnp.float32(0.3)
     return 1 - jnp.abs(jnp.cos(jnp.pi * progress)) ** 3
 
 
@@ -381,7 +383,7 @@ def get_max_mana(state):
 def clip_inventory_and_intrinsics(state, params):
     capped_inv = jax.tree_util.tree_map(lambda x: jnp.minimum(x, 99), state.inventory)
 
-    min_health = jax.lax.select(params.god_mode, 9, 0)
+    min_health = jnp.where(params.god_mode, 9, 0)
 
     state = state.replace(
         inventory=capped_inv,

@@ -3,11 +3,11 @@ import jax.numpy as jnp
 
 
 def get_distance_map(position, map_size):
-    dist_x = jnp.abs(jnp.arange(0, map_size[0]) - position[0])
+    dist_x = jnp.abs(jnp.arange(0, map_size[0], dtype=jnp.int32) - position[0])
     dist_x = jnp.expand_dims(dist_x, axis=1)
     dist_x = jnp.tile(dist_x, (1, map_size[1]))
 
-    dist_y = jnp.abs(jnp.arange(0, map_size[1]) - position[1])
+    dist_y = jnp.abs(jnp.arange(0, map_size[1], dtype=jnp.int32) - position[1])
     dist_y = jnp.expand_dims(dist_y, axis=0)
     dist_y = jnp.tile(dist_y, (map_size[0], 1))
 

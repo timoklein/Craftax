@@ -1,6 +1,6 @@
 import jax
-from flax import struct
 import jax.numpy as jnp
+from flax import struct
 
 from craftax.craftax.constants import BlockType
 
@@ -41,7 +41,7 @@ OVERWORLD_CONFIG = SmoothGenConfig(
     mountain_block=BlockType.STONE.value,
     path_block=BlockType.PATH.value,
     inner_mountain_block=BlockType.PATH.value,
-    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5),
+    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5, dtype=jnp.int32),
     ores=jnp.array(
         [
             BlockType.COAL.value,
@@ -49,9 +49,10 @@ OVERWORLD_CONFIG = SmoothGenConfig(
             BlockType.DIAMOND.value,
             BlockType.OUT_OF_BOUNDS.value,
             BlockType.OUT_OF_BOUNDS.value,
-        ]
+        ],
+        dtype=jnp.int32,
     ),
-    ore_chances=jnp.array([0.03, 0.02, 0.001, 0.0, 0.0]),
+    ore_chances=jnp.array([0.03, 0.02, 0.001, 0.0, 0.0], dtype=jnp.float32),
     tree_requirement_block=BlockType.GRASS.value,
     tree=BlockType.TREE.value,
     lava=BlockType.LAVA.value,
@@ -77,7 +78,7 @@ GNOMISH_MINES_CONFIG = SmoothGenConfig(
     mountain_block=BlockType.STONE.value,
     path_block=BlockType.STONE.value,
     inner_mountain_block=BlockType.STONE.value,
-    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5),
+    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5, dtype=jnp.int32),
     ores=jnp.array(
         [
             BlockType.COAL.value,
@@ -85,9 +86,10 @@ GNOMISH_MINES_CONFIG = SmoothGenConfig(
             BlockType.DIAMOND.value,
             BlockType.SAPPHIRE.value,
             BlockType.RUBY.value,
-        ]
+        ],
+        dtype=jnp.int32,
     ),
-    ore_chances=jnp.array([0.04, 0.02, 0.005, 0.0025, 0.0025]),
+    ore_chances=jnp.array([0.04, 0.02, 0.005, 0.0025, 0.0025], dtype=jnp.float32),
     tree_requirement_block=BlockType.PATH.value,
     tree=BlockType.STALAGMITE.value,
     lava=BlockType.LAVA.value,
@@ -113,7 +115,7 @@ TROLL_MINES_CONFIG = SmoothGenConfig(
     mountain_block=BlockType.STONE.value,
     path_block=BlockType.STONE.value,
     inner_mountain_block=BlockType.STONE.value,
-    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5),
+    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5, dtype=jnp.int32),
     ores=jnp.array(
         [
             BlockType.COAL.value,
@@ -121,9 +123,10 @@ TROLL_MINES_CONFIG = SmoothGenConfig(
             BlockType.DIAMOND.value,
             BlockType.SAPPHIRE.value,
             BlockType.RUBY.value,
-        ]
+        ],
+        dtype=jnp.int32,
     ),
-    ore_chances=jnp.array([0.04, 0.03, 0.01, 0.01, 0.01]),
+    ore_chances=jnp.array([0.04, 0.03, 0.01, 0.01, 0.01], dtype=jnp.float32),
     tree_requirement_block=BlockType.PATH.value,
     tree=BlockType.STALAGMITE.value,
     lava=BlockType.LAVA.value,
@@ -149,7 +152,7 @@ FIRE_LEVEL_CONFIG = SmoothGenConfig(
     mountain_block=BlockType.STONE.value,
     path_block=BlockType.STONE.value,
     inner_mountain_block=BlockType.STONE.value,
-    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5),
+    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5, dtype=jnp.int32),
     ores=jnp.array(
         [
             BlockType.COAL.value,
@@ -157,9 +160,10 @@ FIRE_LEVEL_CONFIG = SmoothGenConfig(
             BlockType.DIAMOND.value,
             BlockType.SAPPHIRE.value,
             BlockType.RUBY.value,
-        ]
+        ],
+        dtype=jnp.int32,
     ),
-    ore_chances=jnp.array([0.05, 0.0, 0.0, 0.0, 0.025]),
+    ore_chances=jnp.array([0.05, 0.0, 0.0, 0.0, 0.025], dtype=jnp.float32),
     tree_requirement_block=BlockType.FIRE_GRASS.value,
     tree=BlockType.FIRE_TREE.value,
     lava=BlockType.LAVA.value,
@@ -185,7 +189,7 @@ ICE_LEVEL_CONFIG = SmoothGenConfig(
     mountain_block=BlockType.STONE.value,
     path_block=BlockType.STONE.value,
     inner_mountain_block=BlockType.STONE.value,
-    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5),
+    ore_requirement_blocks=jnp.array([BlockType.STONE.value] * 5, dtype=jnp.int32),
     ores=jnp.array(
         [
             BlockType.COAL.value,
@@ -193,9 +197,10 @@ ICE_LEVEL_CONFIG = SmoothGenConfig(
             BlockType.DIAMOND.value,
             BlockType.SAPPHIRE.value,
             BlockType.RUBY.value,
-        ]
+        ],
+        dtype=jnp.int32,
     ),
-    ore_chances=jnp.array([0.0, 0.0, 0.005, 0.02, 0.0]),
+    ore_chances=jnp.array([0.0, 0.0, 0.005, 0.02, 0.0], dtype=jnp.float32),
     tree_requirement_block=BlockType.ICE_GRASS.value,
     tree=BlockType.ICE_SHRUB.value,
     lava=BlockType.WATER.value,
@@ -228,7 +233,8 @@ BOSS_LEVEL_CONFIG = SmoothGenConfig(
             BlockType.GRAVE.value,
             BlockType.WALL.value,
             BlockType.WALL.value,
-        ]
+        ],
+        dtype=jnp.int32,
     ),
     ores=jnp.array(
         [
@@ -237,9 +243,10 @@ BOSS_LEVEL_CONFIG = SmoothGenConfig(
             BlockType.GRAVE3.value,
             BlockType.SAPPHIRE.value,
             BlockType.RUBY.value,
-        ]
+        ],
+        dtype=jnp.int32,
     ),
-    ore_chances=jnp.array([0.1, 0.333, 0.5, 0.0, 0.0]),
+    ore_chances=jnp.array([0.1, 0.333, 0.5, 0.0, 0.0], dtype=jnp.float32),
     tree_requirement_block=BlockType.PATH.value,
     tree=BlockType.GRAVE.value,
     lava=BlockType.WALL.value,

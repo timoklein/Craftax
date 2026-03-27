@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from typing import Tuple, Any
+from typing import Any, Tuple
 
+import jax.numpy as jnp
 import jax.random
 from flax import struct
-import jax.numpy as jnp
 
 
 @struct.dataclass

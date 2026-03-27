@@ -1,5 +1,5 @@
-import pickle
 import bz2
+import pickle
 from typing import Any
 
 

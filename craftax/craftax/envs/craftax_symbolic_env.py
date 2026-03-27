@@ -1,15 +1,18 @@
-import jax
-from jax import lax
-from gymnax.environments import spaces, environment
-from typing import Tuple, Optional
+from functools import partial
+from typing import Optional, Tuple
 
-from craftax.craftax.envs.common import log_achievements_to_info
-from craftax.environment_base.environment_bases import EnvironmentNoAutoReset
+import jax
+import jax.numpy as jnp
+from gymnax.environments import environment, spaces
+from jax import lax
+
 from craftax.craftax.constants import *
+from craftax.craftax.craftax_state import EnvParams, EnvState, StaticEnvParams
+from craftax.craftax.envs.common import log_achievements_to_info
 from craftax.craftax.game_logic import craftax_step, is_game_over
-from craftax.craftax.craftax_state import EnvState, EnvParams, StaticEnvParams
 from craftax.craftax.renderer import render_craftax_symbolic
 from craftax.craftax.world_gen.world_gen import generate_world
+from craftax.environment_base.environment_bases import EnvironmentNoAutoReset
 
 
 def get_map_obs_shape():
@@ -114,6 +117,19 @@ class CraftaxSymbolicEnv(environment.Environment):
         if static_env_params is None:
             static_env_params = self.default_static_params()
         self.static_env_params = static_env_params
+
+    @partial(jax.jit, static_argnames=("self",))
+    def step(self, key, state, action, params=None):
+        if params is None:
+            params = self.default_params
+        key_step, key_reset = jax.random.split(key)
+        obs_st, state_st, reward, done, info = self.step_env(
+            key_step, state, action, params
+        )
+        obs_re, state_re = self.reset_env(key_reset, params)
+        state = jax.tree.map(lambda x, y: jnp.where(done, x, y), state_re, state_st)
+        obs = jnp.where(done, obs_re, obs_st)
+        return obs, state, reward, done, info
 
     @property
     def default_params(self) -> EnvParams:

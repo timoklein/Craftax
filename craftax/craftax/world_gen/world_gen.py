@@ -2,8 +2,8 @@ import jax
 import jax.scipy as jsp
 
 from craftax.craftax.constants import *
-from craftax.craftax.game_logic import calculate_light_level, get_distance_map
 from craftax.craftax.craftax_state import EnvState, Inventory, Mobs
+from craftax.craftax.game_logic import calculate_light_level, get_distance_map
 from craftax.craftax.util.noise import generate_fractal_noise_2d
 from craftax.craftax.world_gen.world_gen_configs import (
     ALL_DUNGEON_CONFIGS,
@@ -77,7 +77,9 @@ def generate_dungeon(rng, static_params, config):
     chunk_size = 16
     world_chunk_width = static_params.map_size[0] // chunk_size
     world_chunk_height = static_params.map_size[1] // chunk_size
-    room_occupancy_chunks = jnp.ones(world_chunk_width * world_chunk_height)
+    room_occupancy_chunks = jnp.ones(
+        world_chunk_width * world_chunk_height, dtype=jnp.float32
+    )
 
     num_rooms = 8
     min_room_size = 5
@@ -158,8 +160,8 @@ def generate_dungeon(rng, static_params, config):
         chest_position = jax.random.randint(
             _rng,
             shape=(2,),
-            minval=jnp.ones(2),
-            maxval=room_sizes[room_index] - jnp.ones(2),
+            minval=jnp.ones(2, dtype=jnp.int32),
+            maxval=room_sizes[room_index] - jnp.ones(2, dtype=jnp.int32),
         )
         block_map = block_map.at[
             room_position[0] + chest_position[0], room_position[1] + chest_position[1]
@@ -170,8 +172,8 @@ def generate_dungeon(rng, static_params, config):
         fountain_position = jax.random.randint(
             _rng,
             shape=(2,),
-            minval=jnp.ones(2),
-            maxval=room_sizes[room_index] - jnp.ones(2),
+            minval=jnp.ones(2, dtype=jnp.int32),
+            maxval=room_sizes[room_index] - jnp.ones(2, dtype=jnp.int32),
         )
         room_has_fountain = jax.random.uniform(__rng) > 0.5
         fountain_block = (
@@ -266,7 +268,10 @@ def generate_dungeon(rng, static_params, config):
 
     rng, _rng = jax.random.split(rng)
     included_rooms_mask = jnp.zeros(num_rooms, dtype=bool).at[-1].set(True)
-    (padded_map, _, _), _, = jax.lax.scan(
+    (
+        (padded_map, _, _),
+        _,
+    ) = jax.lax.scan(
         _add_path, (padded_map, included_rooms_mask, _rng), jnp.arange(0, num_rooms)
     )
 
@@ -292,7 +297,7 @@ def generate_dungeon(rng, static_params, config):
         _rng,
         jnp.array([False, True]),
         static_params.map_size,
-        p=jnp.array([0.9, 0.1]),
+        p=jnp.array([0.9, 0.1], dtype=jnp.float32),
     )
 
     wall_map = (
@@ -545,15 +550,17 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
 
     LIGHT_MAP_AROUND_LADDER = TORCH_LIGHT_MAP * (
         1 - config.default_light
-    ) + config.default_light * jnp.ones((9, 9))
+    ) + config.default_light * jnp.ones((9, 9), dtype=jnp.float32)
 
     light_map = jax.lax.dynamic_update_slice(
-        light_map, LIGHT_MAP_AROUND_LADDER, ladder_up - jnp.array([4, 4])
+        light_map,
+        LIGHT_MAP_AROUND_LADDER,
+        ladder_up - jnp.array([4, 4], dtype=jnp.int32),
     )
 
-    z = jnp.array([[0.2, 0.7, 0.2], [0.7, 1, 0.7], [0.2, 0.7, 0.2]]) * (
-        config.lava == BlockType.LAVA.value
-    )
+    z = jnp.array(
+        [[0.2, 0.7, 0.2], [0.7, 1, 0.7], [0.2, 0.7, 0.2]], dtype=jnp.float32
+    ) * (config.lava == BlockType.LAVA.value)
     light_map += jsp.signal.convolve(lava_map, z, mode="same")
     light_map = jnp.clip(light_map, 0.0, 1.0)
 

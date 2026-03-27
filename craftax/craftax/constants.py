@@ -1,10 +1,12 @@
 import os
 import pathlib
 from enum import Enum
-import jax.numpy as jnp
+
 import imageio.v3 as iio
+import jax.numpy as jnp
 import numpy as np
 from PIL import Image
+
 from craftax.craftax.util.maths_utils import get_distance_map
 from craftax.environment_base.util import load_compressed_pickle, save_compressed_pickle
 
@@ -19,6 +21,7 @@ INVENTORY_OBS_HEIGHT = 4
 TEXTURE_CACHE_FILE = os.path.join(
     pathlib.Path(__file__).parent.resolve(), "assets", "texture_cache.pbz2"
 )
+
 
 # ENUMS
 class BlockType(Enum):
@@ -254,7 +257,7 @@ MOB_TYPE_COLLISION_MAPPING = jnp.array(
     dtype=jnp.int32,
 )
 
-NO_DAMAGE = jnp.array([0, 0, 0])
+NO_DAMAGE = jnp.array([0, 0, 0], dtype=jnp.int32)
 MOB_TYPE_DAMAGE_MAPPING = jnp.array(
     [
         # (-, melee, -, projectile)
@@ -327,7 +330,8 @@ RANGED_MOB_TYPE_TO_PROJECTILE_TYPE_MAPPING = jnp.array(
         5,  # Deep thing --> Slime ball
         6,  # Fire elemental --> Fireball2
         7,  # Ice elemental --> Iceball2
-    ]
+    ],
+    dtype=jnp.int32,
 )
 
 
@@ -585,7 +589,7 @@ MOB_ACHIEVEMENT_MAP = jnp.array(
 )
 
 # PRE-COMPUTATION
-TORCH_LIGHT_MAP = get_distance_map(jnp.array([4, 4]), (9, 9))
+TORCH_LIGHT_MAP = get_distance_map(jnp.array([4, 4], dtype=jnp.int32), (9, 9))
 TORCH_LIGHT_MAP /= 5.0
 TORCH_LIGHT_MAP = jnp.clip(1 - TORCH_LIGHT_MAP, 0.0, 1.0)
 
@@ -594,7 +598,7 @@ TORCH_LIGHT_MAP = jnp.clip(1 - TORCH_LIGHT_MAP, 0.0, 1.0)
 def load_texture(filename, block_pixel_size):
     filename = os.path.join(pathlib.Path(__file__).parent.resolve(), "assets", filename)
     img = iio.imread(filename)
-    jnp_img = jnp.array(img).astype(int)
+    jnp_img = jnp.array(img).astype(jnp.int32)
     assert jnp_img.shape[:2] == (16, 16)
 
     if jnp_img.shape[2] == 4:
@@ -624,8 +628,12 @@ def apply_alpha(texture):
 
 
 def load_mob_texture_set(filenames, block_pixel_size):
-    textures = np.zeros((len(filenames), block_pixel_size, block_pixel_size, 3))
-    texture_alphas = np.zeros((len(filenames), block_pixel_size, block_pixel_size, 3))
+    textures = np.zeros(
+        (len(filenames), block_pixel_size, block_pixel_size, 3), dtype=np.float32
+    )
+    texture_alphas = np.zeros(
+        (len(filenames), block_pixel_size, block_pixel_size, 3), dtype=np.float32
+    )
 
     for file_index, filename in enumerate(filenames):
         rgba_img = jnp.array(load_texture(filename, block_pixel_size))
@@ -972,7 +980,7 @@ def load_all_textures(block_pixel_size):
     )
 
     night_texture = (
-        jnp.array([[[0, 16, 64]]])
+        jnp.array([[[0, 16, 64]]], dtype=jnp.int32)
         .repeat(OBS_DIM[0] * block_pixel_size, axis=0)
         .repeat(OBS_DIM[1] * block_pixel_size, axis=1)
     )
@@ -987,7 +995,8 @@ def load_all_textures(block_pixel_size):
                 for y in range(OBS_DIM[1] * block_pixel_size)
             ]
             for x in range(OBS_DIM[0] * block_pixel_size)
-        ]
+        ],
+        dtype=jnp.float32,
     )
     night_noise_intensity_texture = (
         night_noise_intensity_texture / night_noise_intensity_texture.max()
@@ -1024,10 +1033,18 @@ def load_all_textures(block_pixel_size):
     armour_enchantment_textures = jnp.array(
         [
             [
-                jnp.zeros((small_block_pixel_size, small_block_pixel_size, 4)),
-                jnp.zeros((small_block_pixel_size, small_block_pixel_size, 4)),
-                jnp.zeros((small_block_pixel_size, small_block_pixel_size, 4)),
-                jnp.zeros((small_block_pixel_size, small_block_pixel_size, 4)),
+                jnp.zeros(
+                    (small_block_pixel_size, small_block_pixel_size, 4), dtype=jnp.int32
+                ),
+                jnp.zeros(
+                    (small_block_pixel_size, small_block_pixel_size, 4), dtype=jnp.int32
+                ),
+                jnp.zeros(
+                    (small_block_pixel_size, small_block_pixel_size, 4), dtype=jnp.int32
+                ),
+                jnp.zeros(
+                    (small_block_pixel_size, small_block_pixel_size, 4), dtype=jnp.int32
+                ),
             ],
             [
                 load_texture("helmet_fire_enchantment.png", small_block_pixel_size),
@@ -1046,7 +1063,9 @@ def load_all_textures(block_pixel_size):
 
     sword_enchantment_textures = jnp.array(
         [
-            jnp.zeros((small_block_pixel_size, small_block_pixel_size, 4)),
+            jnp.zeros(
+                (small_block_pixel_size, small_block_pixel_size, 4), dtype=jnp.int32
+            ),
             load_texture("sword_fire_enchantment.png", small_block_pixel_size),
             load_texture("sword_ice_enchantment.png", small_block_pixel_size),
         ]
@@ -1054,7 +1073,9 @@ def load_all_textures(block_pixel_size):
 
     arrow_enchantment_textures = jnp.array(
         [
-            jnp.zeros((small_block_pixel_size, small_block_pixel_size, 4)),
+            jnp.zeros(
+                (small_block_pixel_size, small_block_pixel_size, 4), dtype=jnp.int32
+            ),
             load_texture("arrow_fire_enchantment.png", small_block_pixel_size),
             load_texture("arrow_ice_enchantment.png", small_block_pixel_size),
         ]

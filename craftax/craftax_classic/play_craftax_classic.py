@@ -1,18 +1,17 @@
 import argparse
 import sys
 
-import pygame
-
 import jax
 import jax.numpy as jnp
 import numpy as np
+import pygame
 
 from craftax.craftax_classic.constants import (
-    OBS_DIM,
-    INVENTORY_OBS_HEIGHT,
-    Action,
-    Achievement,
     BLOCK_PIXEL_SIZE_HUMAN,
+    INVENTORY_OBS_HEIGHT,
+    OBS_DIM,
+    Achievement,
+    Action,
 )
 from craftax.craftax_classic.envs.craftax_symbolic_env import (
     CraftaxClassicSymbolicEnv as CraftaxEnv,

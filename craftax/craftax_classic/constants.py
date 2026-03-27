@@ -2,11 +2,12 @@ import os
 import pathlib
 from enum import Enum
 
+import imageio.v3 as iio
 import jax
 import jax.numpy as jnp
-import imageio.v3 as iio
 import numpy as np
 from PIL import Image, ImageEnhance
+
 from craftax.environment_base.util import load_compressed_pickle, save_compressed_pickle
 
 # GAME CONSTANTS

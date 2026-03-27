@@ -1,5 +1,5 @@
-from craftax.craftax.craftax_state import EnvState
 from craftax.craftax.constants import *
+from craftax.craftax.craftax_state import EnvState
 
 
 def log_achievements_to_info(state: EnvState, done: bool):
