@@ -10,17 +10,10 @@ def interpolant(t):
     return t * t * t * (t * (t * 6 - 15) + 10)
 
 
-def generate_perlin_noise_2d(
-    rng, shape, res, interpolant=interpolant, override_angles=None
-):
+def generate_perlin_noise_2d(rng, shape, res, interpolant=interpolant, override_angles=None):
     delta = (res[0] / shape[0], res[1] / shape[1])
     d = (shape[0] // res[0], shape[1] // res[1])
-    grid = (
-        jnp.mgrid[0 : res[0] : delta[0], 0 : res[1] : delta[1]]
-        .transpose(1, 2, 0)
-        .astype(jnp.float32)
-        % 1
-    )
+    grid = jnp.mgrid[0 : res[0] : delta[0], 0 : res[1] : delta[1]].transpose(1, 2, 0).astype(jnp.float32) % 1
 
     # Gradients
     rng, _rng = jax.random.split(rng)
@@ -28,9 +21,7 @@ def generate_perlin_noise_2d(
     if override_angles is not None:
         angles = two_pi * override_angles
     else:
-        angles = two_pi * jax.random.uniform(
-            _rng, (res[0] + 1, res[1] + 1), dtype=jnp.float32
-        )
+        angles = two_pi * jax.random.uniform(_rng, (res[0] + 1, res[1] + 1), dtype=jnp.float32)
     gradients = jnp.dstack((jnp.cos(angles), jnp.sin(angles)))
     gradients = gradients.repeat(d[0], 0).repeat(d[1], 1)
     g00 = gradients[: -d[0], : -d[1]]

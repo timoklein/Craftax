@@ -83,9 +83,7 @@ class CraftaxRenderer:
 
         self.screen_size = (
             OBS_DIM[1] * BLOCK_PIXEL_SIZE_HUMAN * pixel_render_size,
-            (OBS_DIM[0] + INVENTORY_OBS_HEIGHT)
-            * BLOCK_PIXEL_SIZE_HUMAN
-            * pixel_render_size,
+            (OBS_DIM[0] + INVENTORY_OBS_HEIGHT) * BLOCK_PIXEL_SIZE_HUMAN * pixel_render_size,
         )
 
         # Init rendering
@@ -135,9 +133,7 @@ class CraftaxRenderer:
 def print_new_achievements(old_achievements, new_achievements):
     for i in range(len(old_achievements)):
         if old_achievements[i] == 0 and new_achievements[i] == 1:
-            print(
-                f"{Achievement(i).name} ({new_achievements.sum()}/{len(Achievement)})"
-            )
+            print(f"{Achievement(i).name} ({new_achievements.sum()}/{len(Achievement)})")
 
 
 def main(args):
@@ -172,9 +168,7 @@ def main(args):
         if action is not None:
             rng, _rng = jax.random.split(rng)
             old_achievements = env_state.achievements
-            obs, env_state, reward, done, info = step_fn(
-                _rng, env_state, action, env_params
-            )
+            obs, env_state, reward, done, info = step_fn(_rng, env_state, action, env_params)
             new_achievements = env_state.achievements
             print_new_achievements(old_achievements, new_achievements)
 

@@ -70,9 +70,7 @@ class CraftaxSymbolicEnvNoAutoReset(EnvironmentNoAutoReset):
             info,
         )
 
-    def reset_env(
-        self, rng: jax.Array, params: EnvParams
-    ) -> Tuple[jax.Array, EnvState]:
+    def reset_env(self, rng: jax.Array, params: EnvParams) -> Tuple[jax.Array, EnvState]:
         rng, _rng = jax.random.split(rng)
         state = generate_world(_rng, params, self.static_env_params)
 
@@ -123,18 +121,14 @@ class CraftaxSymbolicEnv(environment.Environment):
         if params is None:
             params = self.default_params
         key_step, key_reset = jax.random.split(key)
-        obs_st, state_st, reward, done, info = self.step_env(
-            key_step, state, action, params
-        )
+        obs_st, state_st, reward, done, info = self.step_env(key_step, state, action, params)
         obs_re, state_re = self.reset_env(key_reset, params)
         state = jax.tree.map(lambda x, y: jnp.where(done, x, y), state_re, state_st)
         obs = jnp.where(done, obs_re, obs_st)
         return obs, state, reward, done, info
 
     def discount(self, state, params):
-        return jnp.where(
-            self.is_terminal(state, params), jnp.float32(0.0), jnp.float32(1.0)
-        )
+        return jnp.where(self.is_terminal(state, params), jnp.float32(0.0), jnp.float32(1.0))
 
     @property
     def default_params(self) -> EnvParams:
@@ -161,9 +155,7 @@ class CraftaxSymbolicEnv(environment.Environment):
             info,
         )
 
-    def reset_env(
-        self, rng: jax.Array, params: EnvParams
-    ) -> Tuple[jax.Array, EnvState]:
+    def reset_env(self, rng: jax.Array, params: EnvParams) -> Tuple[jax.Array, EnvState]:
         rng, _rng = jax.random.split(rng)
         state = generate_world(_rng, params, self.static_env_params)
 

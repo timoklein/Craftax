@@ -22,9 +22,7 @@ def render_craftax_symbolic(state: EnvState):
     tl_corner = state.player_position - obs_dim_array // 2 + MAX_OBS_DIM + 2
 
     map_view = jax.lax.dynamic_slice(padded_grid, tl_corner, OBS_DIM)
-    map_view_one_hot = jax.nn.one_hot(
-        map_view, num_classes=len(BlockType), dtype=jnp.float32
-    )
+    map_view_one_hot = jax.nn.one_hot(map_view, num_classes=len(BlockType), dtype=jnp.float32)
 
     # Items
     padded_items_map = jnp.pad(
@@ -34,23 +32,17 @@ def render_craftax_symbolic(state: EnvState):
     )
 
     item_map_view = jax.lax.dynamic_slice(padded_items_map, tl_corner, OBS_DIM)
-    item_map_view_one_hot = jax.nn.one_hot(
-        item_map_view, num_classes=len(ItemType), dtype=jnp.float32
-    )
+    item_map_view_one_hot = jax.nn.one_hot(item_map_view, num_classes=len(ItemType), dtype=jnp.float32)
 
     # Mobs
     mob_types_per_class = 8
-    mob_map = jnp.zeros(
-        (*OBS_DIM, 5 * mob_types_per_class), dtype=jnp.int32
-    )  # 5 classes * 8 types
+    mob_map = jnp.zeros((*OBS_DIM, 5 * mob_types_per_class), dtype=jnp.int32)  # 5 classes * 8 types
 
     def _add_mob_to_map(carry, mob_index):
         mob_map, mobs, mob_class_index = carry
 
         local_position = (
-            mobs.position[mob_index]
-            - state.player_position
-            + jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32) // 2
+            mobs.position[mob_index] - state.player_position + jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32) // 2
         )
         on_screen = jnp.logical_and(
             local_position >= 0,
@@ -59,9 +51,7 @@ def render_craftax_symbolic(state: EnvState):
         on_screen *= mobs.mask[mob_index]
 
         mob_identifier = mob_class_index * mob_types_per_class + mobs.type_id[mob_index]
-        mob_map = mob_map.at[local_position[0], local_position[1], mob_identifier].set(
-            on_screen.astype(jnp.int32)
-        )
+        mob_map = mob_map.at[local_position[0], local_position[1], mob_identifier].set(on_screen.astype(jnp.int32))
 
         return (mob_map, mobs, mob_class_index), None
 
@@ -96,9 +86,7 @@ def render_craftax_symbolic(state: EnvState):
         _add_mob_to_map,
         (
             mob_map,
-            jax.tree_util.tree_map(
-                lambda x: x[state.player_level], state.mob_projectiles
-            ),
+            jax.tree_util.tree_map(lambda x: x[state.player_level], state.mob_projectiles),
             3,
         ),
         jnp.arange(state.mob_projectiles.mask.shape[1]),
@@ -107,17 +95,13 @@ def render_craftax_symbolic(state: EnvState):
         _add_mob_to_map,
         (
             mob_map,
-            jax.tree_util.tree_map(
-                lambda x: x[state.player_level], state.player_projectiles
-            ),
+            jax.tree_util.tree_map(lambda x: x[state.player_level], state.player_projectiles),
             4,
         ),
         jnp.arange(state.player_projectiles.mask.shape[1]),
     )
 
-    all_map = jnp.concatenate(
-        [map_view_one_hot, item_map_view_one_hot, mob_map], axis=-1
-    )
+    all_map = jnp.concatenate([map_view_one_hot, item_map_view_one_hot, mob_map], axis=-1)
 
     # Light map
     padded_light_map = jnp.pad(
@@ -129,9 +113,7 @@ def render_craftax_symbolic(state: EnvState):
 
     # Mask out tiles and mobs in darkness
     all_map = all_map * light_map_view[:, :, None]
-    all_map = jnp.concatenate(
-        (all_map, jnp.expand_dims(light_map_view, axis=-1)), axis=-1
-    )
+    all_map = jnp.concatenate((all_map, jnp.expand_dims(light_map_view, axis=-1)), axis=-1)
 
     # Inventory
     inventory = jnp.array(
@@ -173,9 +155,7 @@ def render_craftax_symbolic(state: EnvState):
         ]
     ).astype(jnp.float32)
 
-    direction = jax.nn.one_hot(
-        state.player_direction - 1, num_classes=4, dtype=jnp.float32
-    )
+    direction = jax.nn.one_hot(state.player_direction - 1, num_classes=4, dtype=jnp.float32)
 
     special_values = jnp.array(
         [
@@ -257,15 +237,11 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
 
     def _add_block_type_to_pixels(pixels, block_index):
         return (
-            pixels
-            + textures["full_map_block_textures"][block_index]
-            * (map_pixels_indexes == block_index),
+            pixels + textures["full_map_block_textures"][block_index] * (map_pixels_indexes == block_index),
             None,
         )
 
-    map_pixels, _ = jax.lax.scan(
-        _add_block_type_to_pixels, map_pixels, jnp.arange(len(BlockType))
-    )
+    map_pixels, _ = jax.lax.scan(_add_block_type_to_pixels, map_pixels, jnp.arange(len(BlockType)))
 
     # Items
     padded_item_map = jnp.pad(
@@ -277,9 +253,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     item_map_view = jax.lax.dynamic_slice(padded_item_map, tl_corner, OBS_DIM)
 
     # Insert blocked ladders
-    is_ladder_down_open = (
-        state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL
-    )
+    is_ladder_down_open = state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL
     ladder_down_item = jnp.where(
         is_ladder_down_open,
         ItemType.LADDER_DOWN.value,
@@ -287,10 +261,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     )
 
     item_map_view_is_ladder_down = item_map_view == ItemType.LADDER_DOWN.value
-    item_map_view = (
-        item_map_view_is_ladder_down * ladder_down_item
-        + (1 - item_map_view_is_ladder_down) * item_map_view
-    )
+    item_map_view = item_map_view_is_ladder_down * ladder_down_item + (1 - item_map_view_is_ladder_down) * item_map_view
 
     map_pixels_item_indexes = jnp.repeat(
         jnp.repeat(item_map_view, repeats=block_pixel_size, axis=0),
@@ -304,29 +275,17 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         full_map_texture = textures["full_map_item_textures"][item_index]
         mask = map_pixels_item_indexes == item_index
 
-        pixels = (
-            pixels
-            * (jnp.float32(1) - full_map_texture[:, :, 3] * mask[:, :, 0])[:, :, None]
-        )
-        pixels = (
-            pixels
-            + full_map_texture[:, :, :3] * mask * full_map_texture[:, :, 3][:, :, None]
-        )
+        pixels = pixels * (jnp.float32(1) - full_map_texture[:, :, 3] * mask[:, :, 0])[:, :, None]
+        pixels = pixels + full_map_texture[:, :, :3] * mask * full_map_texture[:, :, 3][:, :, None]
 
         return pixels, None
 
-    map_pixels, _ = jax.lax.scan(
-        _add_item_type_to_pixels, map_pixels, jnp.arange(1, len(ItemType))
-    )
+    map_pixels, _ = jax.lax.scan(_add_item_type_to_pixels, map_pixels, jnp.arange(1, len(ItemType)))
 
     # Render player
     player_texture_index = jnp.where(state.is_sleeping, 4, state.player_direction - 1)
     map_pixels = (
-        map_pixels
-        * (
-            jnp.float32(1)
-            - textures["full_map_player_textures_alpha"][player_texture_index]
-        )
+        map_pixels * (jnp.float32(1) - textures["full_map_player_textures_alpha"][player_texture_index])
         + textures["full_map_player_textures"][player_texture_index]
         * textures["full_map_player_textures_alpha"][player_texture_index]
     )
@@ -341,39 +300,27 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             - state.player_position
             + jnp.ones((2,), dtype=jnp.int32) * (obs_dim_array // 2)
         )
-        on_screen = jnp.logical_and(
-            local_position >= 0, local_position < obs_dim_array
-        ).all()
+        on_screen = jnp.logical_and(local_position >= 0, local_position < obs_dim_array).all()
         on_screen *= mobs.mask[state.player_level, mob_index]
 
         melee_mob_texture = texture_name[mobs.type_id[state.player_level, mob_index]]
-        melee_mob_texture_alpha = alpha_texture_name[
-            mobs.type_id[state.player_level, mob_index]
-        ]
+        melee_mob_texture_alpha = alpha_texture_name[mobs.type_id[state.player_level, mob_index]]
 
         melee_mob_texture = melee_mob_texture * on_screen
 
-        melee_mob_texture_with_background = (
-            jnp.float32(1) - melee_mob_texture_alpha * on_screen
+        melee_mob_texture_with_background = jnp.float32(1) - melee_mob_texture_alpha * on_screen
+
+        melee_mob_texture_with_background = melee_mob_texture_with_background * jax.lax.dynamic_slice(
+            pixels,
+            (
+                local_position[0] * block_pixel_size,
+                local_position[1] * block_pixel_size,
+                jnp.int32(0),
+            ),
+            (block_pixel_size, block_pixel_size, 3),
         )
 
-        melee_mob_texture_with_background = (
-            melee_mob_texture_with_background
-            * jax.lax.dynamic_slice(
-                pixels,
-                (
-                    local_position[0] * block_pixel_size,
-                    local_position[1] * block_pixel_size,
-                    jnp.int32(0),
-                ),
-                (block_pixel_size, block_pixel_size, 3),
-            )
-        )
-
-        melee_mob_texture_with_background = (
-            melee_mob_texture_with_background
-            + melee_mob_texture * melee_mob_texture_alpha
-        )
+        melee_mob_texture_with_background = melee_mob_texture_with_background + melee_mob_texture * melee_mob_texture_alpha
 
         pixels = jax.lax.dynamic_update_slice(
             pixels,
@@ -427,14 +374,10 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             - state.player_position
             + jnp.ones((2,), dtype=jnp.int32) * (obs_dim_array // 2)
         )
-        on_screen = jnp.logical_and(
-            local_position >= 0, local_position < obs_dim_array
-        ).all()
+        on_screen = jnp.logical_and(local_position >= 0, local_position < obs_dim_array).all()
         on_screen *= projectiles.mask[state.player_level, projectile_index]
 
-        projectile_texture = textures["projectile_textures"][
-            projectiles.type_id[state.player_level, projectile_index]
-        ]
+        projectile_texture = textures["projectile_textures"][projectiles.type_id[state.player_level, projectile_index]]
         projectile_texture_alpha = textures["projectile_texture_alphas"][
             projectiles.type_id[state.player_level, projectile_index]
         ]
@@ -458,9 +401,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         )
 
         transposed_projectile_texture = jnp.transpose(projectile_texture, (1, 0, 2))
-        transposed_projectile_texture_alpha = jnp.transpose(
-            projectile_texture_alpha, (1, 0, 2)
-        )
+        transposed_projectile_texture_alpha = jnp.transpose(projectile_texture_alpha, (1, 0, 2))
 
         projectile_texture = jnp.where(
             projectile_directions[state.player_level, projectile_index, 1] != 0,
@@ -474,27 +415,19 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
         )
 
         projectile_texture = projectile_texture * on_screen
-        projectile_texture_with_background = (
-            jnp.float32(1) - projectile_texture_alpha * on_screen
+        projectile_texture_with_background = jnp.float32(1) - projectile_texture_alpha * on_screen
+
+        projectile_texture_with_background = projectile_texture_with_background * jax.lax.dynamic_slice(
+            pixels,
+            (
+                local_position[0] * block_pixel_size,
+                local_position[1] * block_pixel_size,
+                jnp.int32(0),
+            ),
+            (block_pixel_size, block_pixel_size, 3),
         )
 
-        projectile_texture_with_background = (
-            projectile_texture_with_background
-            * jax.lax.dynamic_slice(
-                pixels,
-                (
-                    local_position[0] * block_pixel_size,
-                    local_position[1] * block_pixel_size,
-                    jnp.int32(0),
-                ),
-                (block_pixel_size, block_pixel_size, 3),
-            )
-        )
-
-        projectile_texture_with_background = (
-            projectile_texture_with_background
-            + projectile_texture * projectile_texture_alpha
-        )
+        projectile_texture_with_background = projectile_texture_with_background + projectile_texture * projectile_texture_alpha
 
         pixels = jax.lax.dynamic_update_slice(
             pixels,
@@ -529,9 +462,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     )
 
     light_map_view = jax.lax.dynamic_slice(padded_light_map, tl_corner, OBS_DIM)
-    light_map_pixels = light_map_view.repeat(block_pixel_size, axis=0).repeat(
-        block_pixel_size, axis=1
-    )
+    light_map_pixels = light_map_view.repeat(block_pixel_size, axis=0).repeat(block_pixel_size, axis=1)
 
     map_pixels = (light_map_pixels)[:, :, None] * map_pixels
 
@@ -541,13 +472,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     daylight = jnp.where(state.player_level == 0, daylight, jnp.float32(1.0))
 
     if do_night_noise:
-        night_noise = (
-            jax.random.uniform(
-                state.state_rng, night_pixels.shape[:2], dtype=jnp.float32
-            )
-            * 95
-            + 32
-        )
+        night_noise = jax.random.uniform(state.state_rng, night_pixels.shape[:2], dtype=jnp.float32) * 95 + 32
         night_noise = jnp.expand_dims(night_noise, axis=-1).repeat(3, axis=-1)
 
         night_intensity = 2 * (jnp.float32(0.5) - daylight)
@@ -563,11 +488,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
 
         night_intensity = 2 * (jnp.float32(0.5) - daylight)
         night_intensity = jnp.maximum(night_intensity, jnp.float32(0.0))
-        night_mask = (
-            jnp.ones_like(textures["night_noise_intensity_texture"])
-            * night_intensity
-            * jnp.float32(0.5)
-        )
+        night_mask = jnp.ones_like(textures["night_noise_intensity_texture"]) * night_intensity * jnp.float32(0.5)
         night = (jnp.float32(1.0) - night_mask) * map_pixels + night_mask * night_noise
 
         night = night_pixels * jnp.float32(0.5) + jnp.float32(0.5) * night
@@ -578,9 +499,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     # Apply sleep
     sleep_pixels = jnp.zeros_like(map_pixels)
     sleep_level = jnp.float32(1.0) - state.is_sleeping * jnp.float32(0.5)
-    map_pixels = (
-        sleep_level * map_pixels + (jnp.float32(1) - sleep_level) * sleep_pixels
-    )
+    map_pixels = sleep_level * map_pixels + (jnp.float32(1) - sleep_level) * sleep_pixels
 
     # Render mob map
     # mob_map_pixels = (
@@ -598,9 +517,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
 
     # RENDER INVENTORY
     inv_pixel_left_space = (block_pixel_size - int(0.8 * block_pixel_size)) // 2
-    inv_pixel_right_space = (
-        block_pixel_size - int(0.8 * block_pixel_size) - inv_pixel_left_space
-    )
+    inv_pixel_right_space = block_pixel_size - int(0.8 * block_pixel_size) - inv_pixel_left_space
 
     inv_pixels = jnp.zeros(
         (INVENTORY_OBS_HEIGHT * block_pixel_size, OBS_DIM[1] * block_pixel_size, 3),
@@ -652,52 +569,35 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
 
         pixels = pixels.at[
             y * block_pixel_size + number_offset : (y + 1) * block_pixel_size,
-            x * block_pixel_size
-            + number_double_offset : x * block_pixel_size
-            + number_offset,
+            x * block_pixel_size + number_double_offset : x * block_pixel_size + number_offset,
         ].mul(jnp.float32(1) - textures["number_textures_alpha"][tens])
 
         pixels = pixels.at[
             y * block_pixel_size + number_offset : (y + 1) * block_pixel_size,
-            x * block_pixel_size
-            + number_double_offset : x * block_pixel_size
-            + number_offset,
+            x * block_pixel_size + number_double_offset : x * block_pixel_size + number_offset,
         ].add(textures["number_textures"][tens])
 
         return pixels
 
     def _render_icon(pixels, texture, x, y):
         return pixels.at[
-            block_pixel_size * y
-            + inv_pixel_left_space : block_pixel_size * (y + 1)
-            - inv_pixel_right_space,
-            block_pixel_size * x
-            + inv_pixel_left_space : block_pixel_size * (x + 1)
-            - inv_pixel_right_space,
+            block_pixel_size * y + inv_pixel_left_space : block_pixel_size * (y + 1) - inv_pixel_right_space,
+            block_pixel_size * x + inv_pixel_left_space : block_pixel_size * (x + 1) - inv_pixel_right_space,
         ].set(texture)
 
     def _render_icon_with_alpha(pixels, texture, x, y):
         existing_slice = pixels[
-            block_pixel_size * y
-            + inv_pixel_left_space : block_pixel_size * (y + 1)
-            - inv_pixel_right_space,
-            block_pixel_size * x
-            + inv_pixel_left_space : block_pixel_size * (x + 1)
-            - inv_pixel_right_space,
+            block_pixel_size * y + inv_pixel_left_space : block_pixel_size * (y + 1) - inv_pixel_right_space,
+            block_pixel_size * x + inv_pixel_left_space : block_pixel_size * (x + 1) - inv_pixel_right_space,
         ]
 
         new_slice = (
-            existing_slice * (jnp.float32(1) - texture[:, :, 3][:, :, None])
-            + texture[:, :, :3] * texture[:, :, 3][:, :, None]
+            existing_slice * (jnp.float32(1) - texture[:, :, 3][:, :, None]) + texture[:, :, :3] * texture[:, :, 3][:, :, None]
         )
 
         return pixels.at[
-            block_pixel_size * y
-            + inv_pixel_left_space : block_pixel_size * (y + 1)
-            - inv_pixel_right_space,
-            block_pixel_size * x
-            + inv_pixel_left_space : block_pixel_size * (x + 1)
-            - inv_pixel_right_space,
+            block_pixel_size * y + inv_pixel_left_space : block_pixel_size * (y + 1) - inv_pixel_right_space,
+            block_pixel_size * x + inv_pixel_left_space : block_pixel_size * (x + 1) - inv_pixel_right_space,
         ].set(new_slice)
 
     # Render player stats
@@ -852,9 +752,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             textures["smaller_empty_texture"],
         )
         inv_pixels = _render_icon(inv_pixels, potion_texture, potion_index, 3)
-        inv_pixels = _render_two_digit_number(
-            inv_pixels, state.inventory.potions[potion_index], potion_index, 3
-        )
+        inv_pixels = _render_two_digit_number(inv_pixels, state.inventory.potions[potion_index], potion_index, 3)
 
     # Books
     book_texture = jnp.where(
@@ -881,32 +779,22 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     inv_pixels = _render_icon(inv_pixels, iceball_texture, 5, 2)
 
     # Enchantments
-    sword_enchantment_texture = textures["sword_enchantment_textures"][
-        state.sword_enchantment
-    ]
+    sword_enchantment_texture = textures["sword_enchantment_textures"][state.sword_enchantment]
     inv_pixels = _render_icon_with_alpha(inv_pixels, sword_enchantment_texture, 8, 1)
 
     arrow_enchantment_level = state.bow_enchantment * (state.inventory.arrows > 0)
-    arrow_enchantment_texture = textures["arrow_enchantment_textures"][
-        arrow_enchantment_level
-    ]
+    arrow_enchantment_texture = textures["arrow_enchantment_textures"][arrow_enchantment_level]
     inv_pixels = _render_icon_with_alpha(inv_pixels, arrow_enchantment_texture, 6, 2)
 
     for i in range(4):
-        armour_enchantment_texture = textures["armour_enchantment_textures"][
-            state.armour_enchantments[i], i
-        ]
-        inv_pixels = _render_icon_with_alpha(
-            inv_pixels, armour_enchantment_texture, 7, i
-        )
+        armour_enchantment_texture = textures["armour_enchantment_textures"][state.armour_enchantments[i], i]
+        inv_pixels = _render_icon_with_alpha(inv_pixels, armour_enchantment_texture, 7, i)
 
     # Dungeon level
     inv_pixels = _render_digit(inv_pixels, state.player_level, 6, 0)
 
     # Attributes
-    xp_texture = jnp.where(
-        state.player_xp > 0, textures["xp_texture"], textures["smaller_empty_texture"]
-    )
+    xp_texture = jnp.where(state.player_xp > 0, textures["xp_texture"], textures["smaller_empty_texture"])
     inv_pixels = _render_icon(inv_pixels, xp_texture, 9, 0)
     inv_pixels = _render_digit(inv_pixels, state.player_xp, 9, 0)
 
@@ -958,17 +846,13 @@ def render_craftax_text(state: EnvState):
 
     # Mobs
     mob_types_per_class = 8
-    mob_map = jnp.zeros(
-        (*OBS_DIM, 5 * mob_types_per_class), dtype=jnp.int32
-    )  # 5 classes * 8 types
+    mob_map = jnp.zeros((*OBS_DIM, 5 * mob_types_per_class), dtype=jnp.int32)  # 5 classes * 8 types
 
     def _add_mob_to_map(carry, mob_index):
         mob_map, mobs, mob_class_index = carry
 
         local_position = (
-            mobs.position[mob_index]
-            - state.player_position
-            + jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32) // 2
+            mobs.position[mob_index] - state.player_position + jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32) // 2
         )
         on_screen = jnp.logical_and(
             local_position >= 0,
@@ -977,9 +861,7 @@ def render_craftax_text(state: EnvState):
         on_screen *= mobs.mask[mob_index]
 
         mob_identifier = mob_class_index * mob_types_per_class + mobs.type_id[mob_index]
-        mob_map = mob_map.at[local_position[0], local_position[1], mob_identifier].set(
-            on_screen.astype(jnp.int32)
-        )
+        mob_map = mob_map.at[local_position[0], local_position[1], mob_identifier].set(on_screen.astype(jnp.int32))
 
         return (mob_map, mobs, mob_class_index), None
 
@@ -1014,9 +896,7 @@ def render_craftax_text(state: EnvState):
         _add_mob_to_map,
         (
             mob_map,
-            jax.tree_util.tree_map(
-                lambda x: x[state.player_level], state.mob_projectiles
-            ),
+            jax.tree_util.tree_map(lambda x: x[state.player_level], state.mob_projectiles),
             3,
         ),
         jnp.arange(state.mob_projectiles.mask.shape[1]),
@@ -1025,9 +905,7 @@ def render_craftax_text(state: EnvState):
         _add_mob_to_map,
         (
             mob_map,
-            jax.tree_util.tree_map(
-                lambda x: x[state.player_level], state.player_projectiles
-            ),
+            jax.tree_util.tree_map(lambda x: x[state.player_level], state.player_projectiles),
             4,
         ),
         jnp.arange(state.player_projectiles.mask.shape[1]),
@@ -1160,13 +1038,9 @@ def render_craftax_text(state: EnvState):
         text_obs += level_to_material(state.inventory.pickaxe) + " Pickaxe\n"
     if state.inventory.sword > 0:
         text_obs += level_to_material(state.inventory.sword) + " Sword"
-        text_obs += (
-            " with " + level_to_enchantment(state.sword_enchantment) + " enchantment\n"
-        )
+        text_obs += " with " + level_to_enchantment(state.sword_enchantment) + " enchantment\n"
     if state.inventory.bow > 0:
-        text_obs += (
-            "Bow with " + level_to_enchantment(state.bow_enchantment) + " enchantment\n"
-        )
+        text_obs += "Bow with " + level_to_enchantment(state.bow_enchantment) + " enchantment\n"
 
     text_obs += f"Red potion: {state.inventory.potions[0]}\n"
     text_obs += f"Green potion: {state.inventory.potions[1]}\n"
@@ -1183,35 +1057,19 @@ def render_craftax_text(state: EnvState):
 
     if state.inventory.armour[0] > 0:
         text_obs += f"{get_armour_level(state.inventory.armour[0])} Helmet"
-        text_obs += (
-            " with "
-            + level_to_enchantment(state.armour_enchantments[0])
-            + " enchantment\n"
-        )
+        text_obs += " with " + level_to_enchantment(state.armour_enchantments[0]) + " enchantment\n"
 
     if state.inventory.armour[1] > 0:
         text_obs += f"{get_armour_level(state.inventory.armour[1])} Chestplate"
-        text_obs += (
-            " with "
-            + level_to_enchantment(state.armour_enchantments[1])
-            + " enchantment\n"
-        )
+        text_obs += " with " + level_to_enchantment(state.armour_enchantments[1]) + " enchantment\n"
 
     if state.inventory.armour[2] > 0:
         text_obs += f"{get_armour_level(state.inventory.armour[2])} Leggings"
-        text_obs += (
-            " with "
-            + level_to_enchantment(state.armour_enchantments[2])
-            + " enchantment\n"
-        )
+        text_obs += " with " + level_to_enchantment(state.armour_enchantments[2]) + " enchantment\n"
 
     if state.inventory.armour[3] > 0:
         text_obs += f"{get_armour_level(state.inventory.armour[3])} Boots"
-        text_obs += (
-            " with "
-            + level_to_enchantment(state.armour_enchantments[3])
-            + " enchantment\n"
-        )
+        text_obs += " with " + level_to_enchantment(state.armour_enchantments[3]) + " enchantment\n"
 
     text_obs += f"Health: {state.player_health}\n"
     text_obs += f"Food: {state.player_food}\n"

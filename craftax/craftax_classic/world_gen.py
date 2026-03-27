@@ -11,14 +11,13 @@ def generate_world(rng, params, static_params):
     rng, _rng = jax.random.split(rng, num=2)
 
     player_position = jnp.array(
-        [static_params.map_size[0] // 2, static_params.map_size[1] // 2]
+        [static_params.map_size[0] // 2, static_params.map_size[1] // 2],
+        dtype=jnp.int32,
     )
 
-    player_proximity_map = get_distance_map(player_position, static_params).astype(
-        jnp.float32
-    )
-    player_proximity_map /= 5.0
-    player_proximity_map = jnp.clip(player_proximity_map, 0.0, 1.0)
+    player_proximity_map = get_distance_map(player_position, static_params).astype(jnp.float32)
+    player_proximity_map /= jnp.float32(5.0)
+    player_proximity_map = jnp.clip(player_proximity_map, jnp.float32(0.0), jnp.float32(1.0))
 
     larger_res = (static_params.map_size[0] // 4, static_params.map_size[1] // 4)
     large_res = (static_params.map_size[0] // 8, static_params.map_size[1] // 8)
@@ -35,11 +34,11 @@ def generate_world(rng, params, static_params):
         octaves=1,
         override_angles=fractal_noise_angles[0],
     )
-    water = water + player_proximity_map - 1.0
+    water = water + player_proximity_map - jnp.float32(1.0)
 
     # Water
     rng, _rng = jax.random.split(rng)
-    map = jnp.where(water > 0.7, BlockType.WATER.value, BlockType.GRASS.value)
+    map = jnp.where(water > 0.7, BlockType.WATER.value, BlockType.GRASS.value).astype(jnp.int32)
 
     # water = water - 0.15 * mountain + 0.15
 
@@ -66,17 +65,14 @@ def generate_world(rng, params, static_params):
     mountain_threshold = 0.7
 
     rng, _rng = jax.random.split(rng)
-    mountain = (
-        generate_fractal_noise_2d(
-            _rng,
-            static_params.map_size,
-            small_res,
-            octaves=1,
-            override_angles=fractal_noise_angles[1],
-        )
-        + 0.05
-    )
-    mountain = mountain + player_proximity_map - 1.0
+    mountain = generate_fractal_noise_2d(
+        _rng,
+        static_params.map_size,
+        small_res,
+        octaves=1,
+        override_angles=fractal_noise_angles[1],
+    ) + jnp.float32(0.05)
+    mountain = mountain + player_proximity_map - jnp.float32(1.0)
     map = jnp.where(mountain > mountain_threshold, BlockType.STONE.value, map)
 
     # Paths
@@ -104,21 +100,19 @@ def generate_world(rng, params, static_params):
     rng, _rng = jax.random.split(rng)
     coal_map = jnp.logical_and(
         map == BlockType.STONE.value,
-        jax.random.uniform(_rng, static_params.map_size) < 0.04,
+        jax.random.uniform(_rng, static_params.map_size, dtype=jnp.float32) < 0.04,
     )
     map = jnp.where(coal_map, BlockType.COAL.value, map)
 
     rng, _rng = jax.random.split(rng)
     iron_map = jnp.logical_and(
         map == BlockType.STONE.value,
-        jax.random.uniform(_rng, static_params.map_size) < 0.03,
+        jax.random.uniform(_rng, static_params.map_size, dtype=jnp.float32) < 0.03,
     )
     map = jnp.where(iron_map, BlockType.IRON.value, map)
 
     rng, _rng = jax.random.split(rng)
-    diamond_map = jnp.logical_and(
-        mountain > 0.8, jax.random.uniform(_rng, static_params.map_size) < 0.005
-    )
+    diamond_map = jnp.logical_and(mountain > 0.8, jax.random.uniform(_rng, static_params.map_size, dtype=jnp.float32) < 0.005)
     diamond_map = jnp.logical_and(diamond_map, map == BlockType.STONE.value)
     map = jnp.where(diamond_map, BlockType.DIAMOND.value, map)
 
@@ -131,9 +125,7 @@ def generate_world(rng, params, static_params):
         octaves=1,
         override_angles=fractal_noise_angles[3],
     )
-    tree = (tree_noise > 0.5) * jax.random.uniform(
-        rng, shape=static_params.map_size
-    ) > 0.8
+    tree = (tree_noise > 0.5) * jax.random.uniform(rng, shape=static_params.map_size, dtype=jnp.float32) > 0.8
     tree = jnp.logical_and(tree, map == BlockType.GRASS.value)
     map = jnp.where(tree, BlockType.TREE.value, map)
 
@@ -152,18 +144,17 @@ def generate_world(rng, params, static_params):
     rng, _rng = jax.random.split(rng)
     diamond_index = jax.random.choice(
         _rng,
-        jnp.arange(static_params.map_size[0] * static_params.map_size[1]),
+        jnp.arange(static_params.map_size[0] * static_params.map_size[1], dtype=jnp.int32),
         p=valid_diamond / valid_diamond.sum(),
     )
     diamond_position = jnp.array(
         [
             diamond_index // static_params.map_size[0],
             diamond_index % static_params.map_size[0],
-        ]
+        ],
+        dtype=jnp.int32,
     )
-    diamond_replace_block = jax.lax.select(
-        params.always_diamond, BlockType.DIAMOND.value, BlockType.STONE.value
-    )
+    diamond_replace_block = jnp.where(params.always_diamond, BlockType.DIAMOND.value, BlockType.STONE.value)
     map = map.at[diamond_position[0], diamond_position[1]].set(diamond_replace_block)
 
     # Zombies
@@ -219,9 +210,7 @@ def generate_world(rng, params, static_params):
     )
 
     # Plants
-    growing_plants_positions = jnp.zeros(
-        (static_params.max_growing_plants, 2), dtype=jnp.int32
-    )
+    growing_plants_positions = jnp.zeros((static_params.max_growing_plants, 2), dtype=jnp.int32)
     growing_plants_age = jnp.zeros(static_params.max_growing_plants, dtype=jnp.int32)
     growing_plants_mask = jnp.zeros(static_params.max_growing_plants, dtype=bool)
 
@@ -231,17 +220,30 @@ def generate_world(rng, params, static_params):
         map=map,
         mob_map=jnp.zeros(static_params.map_size, dtype=bool),
         player_position=player_position,
-        player_direction=Action.UP.value,
-        player_health=9,
-        player_food=9,
-        player_drink=9,
-        player_energy=9,
-        player_recover=0.0,
-        player_hunger=0.0,
-        player_thirst=0.0,
-        player_fatigue=0.0,
+        player_direction=jnp.int32(Action.UP.value),
+        player_health=jnp.int32(9),
+        player_food=jnp.int32(9),
+        player_drink=jnp.int32(9),
+        player_energy=jnp.int32(9),
+        player_recover=jnp.float32(0.0),
+        player_hunger=jnp.float32(0.0),
+        player_thirst=jnp.float32(0.0),
+        player_fatigue=jnp.float32(0.0),
         is_sleeping=False,
-        inventory=Inventory(),
+        inventory=Inventory(
+            wood=jnp.int32(0),
+            stone=jnp.int32(0),
+            coal=jnp.int32(0),
+            iron=jnp.int32(0),
+            diamond=jnp.int32(0),
+            sapling=jnp.int32(0),
+            wood_pickaxe=jnp.int32(0),
+            stone_pickaxe=jnp.int32(0),
+            iron_pickaxe=jnp.int32(0),
+            wood_sword=jnp.int32(0),
+            stone_sword=jnp.int32(0),
+            iron_sword=jnp.int32(0),
+        ),
         zombies=zombies,
         skeletons=skeletons,
         arrows=arrows,
@@ -251,9 +253,9 @@ def generate_world(rng, params, static_params):
         growing_plants_age=growing_plants_age,
         growing_plants_mask=growing_plants_mask,
         achievements=jnp.zeros((len(Achievement),), dtype=bool),
-        light_level=calculate_light_level(0, params),
+        light_level=jnp.float32(calculate_light_level(jnp.int32(0), params)),
         state_rng=_rng,
-        timestep=0,
+        timestep=jnp.int32(0),
     )
 
     return state
@@ -311,31 +313,41 @@ def generate_random_world(rng, params, static_params):
     )
 
     # Plants
-    growing_plants_positions = jnp.zeros(
-        (static_params.max_growing_plants, 2), dtype=jnp.int32
-    )
+    growing_plants_positions = jnp.zeros((static_params.max_growing_plants, 2), dtype=jnp.int32)
     growing_plants_age = jnp.zeros(static_params.max_growing_plants, dtype=jnp.int32)
     growing_plants_mask = jnp.zeros(static_params.max_growing_plants, dtype=bool)
 
     rng, _rng = jax.random.split(rng)
-    map = jax.random.choice(
-        _rng, jnp.arange(2, 17), shape=static_params.map_size
-    ).astype(int)
+    map = jax.random.choice(_rng, jnp.arange(2, 17, dtype=jnp.int32), shape=static_params.map_size).astype(jnp.int32)
 
     state = EnvState(
         map=map,
+        mob_map=jnp.zeros(static_params.map_size, dtype=bool),
         player_position=jnp.zeros(2, dtype=jnp.int32),
-        player_direction=Action.UP.value,
-        player_health=9,
-        player_food=9,
-        player_drink=9,
-        player_energy=9,
-        player_recover=0.0,
-        player_hunger=0.0,
-        player_thirst=0.0,
-        player_fatigue=0.0,
+        player_direction=jnp.int32(Action.UP.value),
+        player_health=jnp.int32(9),
+        player_food=jnp.int32(9),
+        player_drink=jnp.int32(9),
+        player_energy=jnp.int32(9),
+        player_recover=jnp.float32(0.0),
+        player_hunger=jnp.float32(0.0),
+        player_thirst=jnp.float32(0.0),
+        player_fatigue=jnp.float32(0.0),
         is_sleeping=False,
-        inventory=Inventory(),
+        inventory=Inventory(
+            wood=jnp.int32(0),
+            stone=jnp.int32(0),
+            coal=jnp.int32(0),
+            iron=jnp.int32(0),
+            diamond=jnp.int32(0),
+            sapling=jnp.int32(0),
+            wood_pickaxe=jnp.int32(0),
+            stone_pickaxe=jnp.int32(0),
+            iron_pickaxe=jnp.int32(0),
+            wood_sword=jnp.int32(0),
+            stone_sword=jnp.int32(0),
+            iron_sword=jnp.int32(0),
+        ),
         zombies=zombies,
         skeletons=skeletons,
         arrows=arrows,
@@ -345,8 +357,9 @@ def generate_random_world(rng, params, static_params):
         growing_plants_age=growing_plants_age,
         growing_plants_mask=growing_plants_mask,
         achievements=jnp.zeros((22,), dtype=bool),
-        light_level=calculate_light_level(0),
-        timestep=0,
+        light_level=jnp.float32(calculate_light_level(jnp.int32(0), params)),
+        state_rng=_rng,
+        timestep=jnp.int32(0),
     )
 
     return state

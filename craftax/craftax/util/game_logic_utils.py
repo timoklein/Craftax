@@ -41,22 +41,16 @@ def attack_mob_class(
         in_mob = (mobs.position[state.player_level, mob_index] == position).all()
         return None, jnp.logical_and(in_mob, mobs.mask[state.player_level, mob_index])
 
-    _, is_attacking_mob_array = jax.lax.scan(
-        is_attacking_mob_at_index, None, jnp.arange(mobs.mask.shape[1])
-    )
+    _, is_attacking_mob_array = jax.lax.scan(is_attacking_mob_at_index, None, jnp.arange(mobs.mask.shape[1]))
     is_attacking_mob = is_attacking_mob_array.sum() > 0
     target_mob_index = jnp.argmax(is_attacking_mob_array)
 
     damage = get_damage(
         damage_vector,
-        MOB_TYPE_DEFENSE_MAPPING[
-            mobs.type_id[state.player_level, target_mob_index], mob_class_index
-        ],
+        MOB_TYPE_DEFENSE_MAPPING[mobs.type_id[state.player_level, target_mob_index], mob_class_index],
     )
 
-    new_mob_health = mobs.health.at[state.player_level, target_mob_index].add(
-        -damage * is_attacking_mob
-    )
+    new_mob_health = mobs.health.at[state.player_level, target_mob_index].add(-damage * is_attacking_mob)
     mobs = mobs.replace(health=new_mob_health)
 
     old_mask = mobs.mask[state.player_level, target_mob_index]
@@ -66,9 +60,7 @@ def attack_mob_class(
         jnp.logical_not(mobs.mask[state.player_level, target_mob_index]),
     )
 
-    achievement_for_kill = MOB_ACHIEVEMENT_MAP[
-        mob_class_index, mobs.type_id[state.player_level, target_mob_index]
-    ]
+    achievement_for_kill = MOB_ACHIEVEMENT_MAP[mob_class_index, mobs.type_id[state.player_level, target_mob_index]]
 
     new_achievements = state.achievements.at[achievement_for_kill].set(
         jnp.logical_or(
@@ -171,9 +163,7 @@ def attack_mob(state, position, damage_vector, can_eat):
                 jnp.logical_not(did_kill_mob),
             )
         ),
-        monsters_killed=state.monsters_killed.at[state.player_level].add(
-            1 * did_kill_monster
-        ),
+        monsters_killed=state.monsters_killed.at[state.player_level].add(1 * did_kill_monster),
     )
 
     return state, did_attack_mob, did_kill_mob
@@ -189,9 +179,7 @@ def spawn_projectile(
     direction,
     projectile_type,
 ):
-    new_projectile_index = jnp.argmax(
-        jnp.logical_not(projectiles.mask[state.player_level])
-    )
+    new_projectile_index = jnp.argmax(jnp.logical_not(projectiles.mask[state.player_level]))
     new_projectile_position = jnp.where(
         is_spawning_projectile,
         new_projectile_position,
@@ -214,20 +202,14 @@ def spawn_projectile(
     )
 
     new_projectiles = projectiles.replace(
-        position=projectiles.position.at[state.player_level, new_projectile_index].set(
-            new_projectile_position
-        ),
-        mask=projectiles.mask.at[state.player_level, new_projectile_index].set(
-            new_projectile_mask
-        ),
-        type_id=projectiles.type_id.at[state.player_level, new_projectile_index].set(
-            new_projectile_type
-        ),
+        position=projectiles.position.at[state.player_level, new_projectile_index].set(new_projectile_position),
+        mask=projectiles.mask.at[state.player_level, new_projectile_index].set(new_projectile_mask),
+        type_id=projectiles.type_id.at[state.player_level, new_projectile_index].set(new_projectile_type),
     )
 
-    new_projectile_directions = projectile_directions.at[
-        state.player_level, new_projectile_index
-    ].set(new_projectile_direction)
+    new_projectile_directions = projectile_directions.at[state.player_level, new_projectile_index].set(
+        new_projectile_direction
+    )
 
     return new_projectiles, new_projectile_directions
 
@@ -244,9 +226,7 @@ def get_damage_done_to_player(state, static_params, damage_vector):
 
     defense_vector = scaled_defenses.sum(axis=1)
 
-    damage_vector *= (
-        1 + is_fighting_boss(state, static_params) * BOSS_FIGHT_EXTRA_DAMAGE
-    )
+    damage_vector *= 1 + is_fighting_boss(state, static_params) * BOSS_FIGHT_EXTRA_DAMAGE
 
     return get_damage(damage_vector, defense_vector)
 
@@ -260,15 +240,9 @@ def get_player_damage_vector(state):
     fire_damage = physical_damage * (state.sword_enchantment == 1) * jnp.float32(0.5)
     ice_damage = physical_damage * (state.sword_enchantment == 2) * jnp.float32(0.5)
 
-    physical_damage *= 1 + jnp.float32(0.25) * (
-        state.player_strength - 1
-    )  # Strength=5 does double damage
-    fire_damage *= 1 + jnp.float32(0.05) * (
-        state.player_intelligence - 1
-    )  # Int=5 does 25% more enchant damage
-    ice_damage *= 1 + jnp.float32(0.05) * (
-        state.player_intelligence - 1
-    )  # Int=5 does 25% more enchant damage
+    physical_damage *= 1 + jnp.float32(0.25) * (state.player_strength - 1)  # Strength=5 does double damage
+    fire_damage *= 1 + jnp.float32(0.05) * (state.player_intelligence - 1)  # Int=5 does 25% more enchant damage
+    ice_damage *= 1 + jnp.float32(0.05) * (state.player_intelligence - 1)  # Int=5 does 25% more enchant damage
 
     return jnp.stack([physical_damage, fire_damage, ice_damage], axis=0)
 
@@ -280,12 +254,8 @@ def get_damage(damage_vector, defense_vector):
 
 
 def in_bounds(state, position):
-    in_bounds_x = jnp.logical_and(
-        0 <= position[0], position[0] < state.map[state.player_level].shape[0]
-    )
-    in_bounds_y = jnp.logical_and(
-        0 <= position[1], position[1] < state.map[state.player_level].shape[1]
-    )
+    in_bounds_x = jnp.logical_and(0 <= position[0], position[0] < state.map[state.player_level].shape[0])
+    in_bounds_y = jnp.logical_and(0 <= position[1], position[1] < state.map[state.player_level].shape[1])
     return jnp.logical_and(in_bounds_x, in_bounds_y)
 
 
@@ -297,12 +267,8 @@ def is_position_in_bounds_not_in_mob_not_colliding(state, position, collision_ma
     pos_in_bounds = in_bounds(state, position)
     in_solid_block = is_in_solid_block(state, position)
     in_mob = is_in_mob(state, position)
-    in_lava = (
-        state.map[state.player_level][position[0], position[1]] == BlockType.LAVA.value
-    )
-    in_water = (
-        state.map[state.player_level][position[0], position[1]] == BlockType.WATER.value
-    )
+    in_lava = state.map[state.player_level][position[0], position[1]] == BlockType.LAVA.value
+    in_water = state.map[state.player_level][position[0], position[1]] == BlockType.WATER.value
     on_ground_block = jnp.logical_and(
         jnp.logical_not(in_solid_block),
         jnp.logical_and(jnp.logical_not(in_water), jnp.logical_not(in_lava)),
@@ -316,9 +282,7 @@ def is_position_in_bounds_not_in_mob_not_colliding(state, position, collision_ma
     # Ground blocks
     valid_move = jnp.logical_and(
         valid_move,
-        jnp.logical_or(
-            jnp.logical_not(collision_map[0]), jnp.logical_not(on_ground_block)
-        ),
+        jnp.logical_or(jnp.logical_not(collision_map[0]), jnp.logical_not(on_ground_block)),
     )
 
     # Water
@@ -387,16 +351,10 @@ def clip_inventory_and_intrinsics(state, params):
 
     state = state.replace(
         inventory=capped_inv,
-        player_health=jnp.minimum(
-            jnp.maximum(state.player_health, min_health), get_max_health(state)
-        ),
+        player_health=jnp.minimum(jnp.maximum(state.player_health, min_health), get_max_health(state)),
         player_food=jnp.minimum(jnp.maximum(state.player_food, 0), get_max_food(state)),
-        player_drink=jnp.minimum(
-            jnp.maximum(state.player_drink, 0), get_max_drink(state)
-        ),
-        player_energy=jnp.minimum(
-            jnp.maximum(state.player_energy, 0), get_max_energy(state)
-        ),
+        player_drink=jnp.minimum(jnp.maximum(state.player_drink, 0), get_max_drink(state)),
+        player_energy=jnp.minimum(jnp.maximum(state.player_energy, 0), get_max_energy(state)),
         player_mana=jnp.minimum(jnp.maximum(state.player_mana, 0), get_max_mana(state)),
     )
 

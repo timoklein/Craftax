@@ -61,9 +61,7 @@ class EnvironmentNoAutoReset(object):
 
     def discount(self, state, params) -> float:
         """Return a discount of zero if the episode has terminated."""
-        return jnp.where(
-            self.is_terminal(state, params), jnp.float32(0.0), jnp.float32(1.0)
-        )
+        return jnp.where(self.is_terminal(state, params), jnp.float32(0.0), jnp.float32(1.0))
 
     @property
     def name(self) -> str:

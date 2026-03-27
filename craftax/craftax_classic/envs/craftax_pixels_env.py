@@ -1,18 +1,20 @@
-from jax import lax
-from gymnax.environments import spaces, environment
-from typing import Tuple, Optional
+from functools import partial
+from typing import Optional, Tuple
 
-from craftax.environment_base.environment_bases import EnvironmentNoAutoReset
-from craftax.craftax_classic.envs.common import compute_score
+from gymnax.environments import environment, spaces
+from jax import lax
+
 from craftax.craftax_classic.constants import *
-from craftax.craftax_classic.game_logic import craftax_step, is_game_over
+from craftax.craftax_classic.envs.common import compute_score
 from craftax.craftax_classic.envs.craftax_state import (
-    EnvState,
     EnvParams,
+    EnvState,
     StaticEnvParams,
 )
+from craftax.craftax_classic.game_logic import craftax_step, is_game_over
 from craftax.craftax_classic.renderer import render_craftax_pixels
 from craftax.craftax_classic.world_gen import generate_world
+from craftax.environment_base.environment_bases import EnvironmentNoAutoReset
 
 
 class CraftaxClassicPixelsEnvNoAutoReset(EnvironmentNoAutoReset):
@@ -49,15 +51,13 @@ class CraftaxClassicPixelsEnvNoAutoReset(EnvironmentNoAutoReset):
             info,
         )
 
-    def reset_env(
-        self, rng: jax.Array, params: EnvParams
-    ) -> Tuple[jax.Array, EnvState]:
+    def reset_env(self, rng: jax.Array, params: EnvParams) -> Tuple[jax.Array, EnvState]:
         state = generate_world(rng, params, self.static_env_params)
 
         return self.get_obs(state), state
 
     def get_obs(self, state: EnvState) -> jax.Array:
-        pixels = render_craftax_pixels(state, BLOCK_PIXEL_SIZE_AGENT) / 255.0
+        pixels = render_craftax_pixels(state, BLOCK_PIXEL_SIZE_AGENT) / jnp.float32(255.0)
         return pixels
 
     def is_terminal(self, state: EnvState, params: EnvParams) -> bool:
@@ -95,6 +95,20 @@ class CraftaxClassicPixelsEnv(environment.Environment):
             static_env_params = self.default_static_params()
         self.static_env_params = static_env_params
 
+    @partial(jax.jit, static_argnames=("self",))
+    def step(self, key, state, action, params=None):
+        if params is None:
+            params = self.default_params
+        key_step, key_reset = jax.random.split(key)
+        obs_st, state_st, reward, done, info = self.step_env(key_step, state, action, params)
+        obs_re, state_re = self.reset_env(key_reset, params)
+        state = jax.tree.map(lambda x, y: jnp.where(done, x, y), state_re, state_st)
+        obs = jnp.where(done, obs_re, obs_st)
+        return obs, state, reward, done, info
+
+    def discount(self, state, params):
+        return jnp.where(self.is_terminal(state, params), jnp.float32(0.0), jnp.float32(1.0))
+
     @property
     def default_params(self) -> EnvParams:
         return EnvParams()
@@ -121,15 +135,13 @@ class CraftaxClassicPixelsEnv(environment.Environment):
             info,
         )
 
-    def reset_env(
-        self, rng: jax.Array, params: EnvParams
-    ) -> Tuple[jax.Array, EnvState]:
+    def reset_env(self, rng: jax.Array, params: EnvParams) -> Tuple[jax.Array, EnvState]:
         state = generate_world(rng, params, self.static_env_params)
 
         return self.get_obs(state), state
 
     def get_obs(self, state: EnvState) -> jax.Array:
-        pixels = render_craftax_pixels(state, BLOCK_PIXEL_SIZE_AGENT) / 255.0
+        pixels = render_craftax_pixels(state, BLOCK_PIXEL_SIZE_AGENT) / jnp.float32(255.0)
         return pixels
 
     def is_terminal(self, state: EnvState, params: EnvParams) -> bool:
@@ -156,5 +168,4 @@ class CraftaxClassicPixelsEnv(environment.Environment):
                 3,
             ),
             dtype=jnp.float32,
-        )
         )

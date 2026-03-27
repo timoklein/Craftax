@@ -18,9 +18,8 @@ BLOCK_PIXEL_SIZE_HUMAN = 64
 BLOCK_PIXEL_SIZE_IMG = 16
 BLOCK_PIXEL_SIZE_AGENT = 7
 INVENTORY_OBS_HEIGHT = 2
-TEXTURE_CACHE_FILE = os.path.join(
-    pathlib.Path(__file__).parent.resolve(), "assets", "texture_cache_classic.pbz2"
-)
+TEXTURE_CACHE_FILE = os.path.join(pathlib.Path(__file__).parent.resolve(), "assets", "texture_cache_classic.pbz2")
+
 
 # ENUMS
 class BlockType(Enum):
@@ -134,7 +133,7 @@ class Achievement(Enum):
 def load_texture(filename, block_pixel_size, clamp_alpha=True):
     filename = os.path.join(pathlib.Path(__file__).parent.resolve(), "assets", filename)
     img = iio.imread(filename)
-    jnp_img = jnp.array(img).astype(int)
+    jnp_img = jnp.array(img, dtype=jnp.int32)
     assert jnp_img.shape[:2] == (16, 16)
 
     if jnp_img.shape[2] == 4 and clamp_alpha:
@@ -143,9 +142,7 @@ def load_texture(filename, block_pixel_size, clamp_alpha=True):
     if block_pixel_size != 16:
         img = np.array(jnp_img, dtype=np.uint8)
         image = Image.fromarray(img)
-        image = image.resize(
-            (block_pixel_size, block_pixel_size), resample=Image.NEAREST
-        )
+        image = image.resize((block_pixel_size, block_pixel_size), resample=Image.NEAREST)
         jnp_img = jnp.array(image, dtype=jnp.int32)
 
     return jnp_img
@@ -197,26 +194,15 @@ def load_all_textures(block_pixel_size):
         ]
     )
 
-    block_textures = jnp.array(
-        [load_texture(fname, block_pixel_size)[:, :, :3] for fname in texture_names]
-    )
-    block_textures = block_textures.at[1].set(
-        jnp.ones((block_pixel_size, block_pixel_size, 3), dtype=jnp.int32) * 128
-    )
+    block_textures = jnp.array([load_texture(fname, block_pixel_size)[:, :, :3] for fname in texture_names])
+    block_textures = block_textures.at[1].set(jnp.ones((block_pixel_size, block_pixel_size, 3), dtype=jnp.int32) * 128)
 
     # rng = jax.random.prngkey(0)
     # block_textures = jax.random.permutation(rng, block_textures)
 
-    smaller_block_textures = jnp.array(
-        [
-            load_texture(fname, int(block_pixel_size * 0.8))[:, :, :3]
-            for fname in texture_names
-        ]
-    )
+    smaller_block_textures = jnp.array([load_texture(fname, int(block_pixel_size * 0.8))[:, :, :3] for fname in texture_names])
 
-    full_map_block_textures = jnp.array(
-        [jnp.tile(block_textures[block.value], (*OBS_DIM, 1)) for block in BlockType]
-    )
+    full_map_block_textures = jnp.array([jnp.tile(block_textures[block.value], (*OBS_DIM, 1)) for block in BlockType])
 
     # player
     pad_pixels = (
@@ -240,14 +226,12 @@ def load_all_textures(block_pixel_size):
         for player_texture in player_textures
     ]
 
-    full_map_player_textures = jnp.array(
-        [player_texture[:, :, :3] for player_texture in full_map_player_textures_rgba]
-    )
+    full_map_player_textures = jnp.array([player_texture[:, :, :3] for player_texture in full_map_player_textures_rgba])
 
     full_map_player_textures_alpha = jnp.array(
         [
             jnp.repeat(
-                jnp.expand_dims(player_texture[:, :, 3], axis=-1).astype(float) / 255,
+                jnp.expand_dims(player_texture[:, :, 3], axis=-1).astype(jnp.float32) / jnp.float32(255),
                 repeats=3,
                 axis=2,
             )
@@ -258,9 +242,7 @@ def load_all_textures(block_pixel_size):
     # inventory
 
     empty_texture = jnp.zeros((block_pixel_size, block_pixel_size, 3), dtype=jnp.int32)
-    smaller_empty_texture = jnp.zeros(
-        (int(block_pixel_size * 0.8), int(block_pixel_size * 0.8), 3), dtype=jnp.int32
-    )
+    smaller_empty_texture = jnp.zeros((int(block_pixel_size * 0.8), int(block_pixel_size * 0.8), 3), dtype=jnp.int32)
 
     ones_texture = jnp.ones((block_pixel_size, block_pixel_size, 3), dtype=jnp.int32)
 
@@ -281,122 +263,85 @@ def load_all_textures(block_pixel_size):
 
     number_textures = jnp.array(
         [
-            number_texture[:, :, :3]
-            * jnp.repeat(jnp.expand_dims(number_texture[:, :, 3], axis=-1), 3, axis=-1)
+            number_texture[:, :, :3] * jnp.repeat(jnp.expand_dims(number_texture[:, :, 3], axis=-1), 3, axis=-1)
             for number_texture in number_textures_rgba
         ]
     )
 
     number_textures_alpha = jnp.array(
         [
-            jnp.repeat(
-                jnp.expand_dims(number_texture[:, :, 3], axis=-1), repeats=3, axis=2
-            )
+            jnp.repeat(jnp.expand_dims(number_texture[:, :, 3], axis=-1), repeats=3, axis=2)
             for number_texture in number_textures_rgba
         ]
     )
 
-    health_texture = jnp.array(
-        load_texture("health.png", small_block_pixel_size)[:, :, :3]
-    )
-    hunger_texture = jnp.array(
-        load_texture("food.png", small_block_pixel_size)[:, :, :3]
-    )
-    thirst_texture = jnp.array(
-        load_texture("drink.png", small_block_pixel_size)[:, :, :3]
-    )
-    energy_texture = jnp.array(
-        load_texture("energy.png", small_block_pixel_size)[:, :, :3]
-    )
+    health_texture = jnp.array(load_texture("health.png", small_block_pixel_size)[:, :, :3])
+    hunger_texture = jnp.array(load_texture("food.png", small_block_pixel_size)[:, :, :3])
+    thirst_texture = jnp.array(load_texture("drink.png", small_block_pixel_size)[:, :, :3])
+    energy_texture = jnp.array(load_texture("energy.png", small_block_pixel_size)[:, :, :3])
 
     # get rid of the cow ghost
     def apply_alpha(texture):
-        return texture[:, :, :3] * jnp.repeat(
-            jnp.expand_dims(texture[:, :, 3], axis=-1), 3, axis=-1
-        )
+        return texture[:, :, :3] * jnp.repeat(jnp.expand_dims(texture[:, :, 3], axis=-1), 3, axis=-1)
 
-    wood_pickaxe_texture = jnp.array(
-        load_texture("wood_pickaxe.png", small_block_pixel_size)[:, :, :3]
-    )  # no ghosts :)
-    stone_pickaxe_texture = jnp.array(
-        load_texture("stone_pickaxe.png", small_block_pixel_size)
-    )
+    wood_pickaxe_texture = jnp.array(load_texture("wood_pickaxe.png", small_block_pixel_size)[:, :, :3])  # no ghosts :)
+    stone_pickaxe_texture = jnp.array(load_texture("stone_pickaxe.png", small_block_pixel_size))
     stone_pickaxe_texture = apply_alpha(stone_pickaxe_texture)
-    iron_pickaxe_texture = jnp.array(
-        load_texture("iron_pickaxe.png", small_block_pixel_size)
-    )
+    iron_pickaxe_texture = jnp.array(load_texture("iron_pickaxe.png", small_block_pixel_size))
     iron_pickaxe_texture = apply_alpha(iron_pickaxe_texture)
 
-    wood_sword_texture = jnp.array(
-        load_texture("wood_sword.png", small_block_pixel_size)
-    )
+    wood_sword_texture = jnp.array(load_texture("wood_sword.png", small_block_pixel_size))
     wood_sword_texture = apply_alpha(wood_sword_texture)
-    stone_sword_texture = jnp.array(
-        load_texture("stone_sword.png", small_block_pixel_size)
-    )
+    stone_sword_texture = jnp.array(load_texture("stone_sword.png", small_block_pixel_size))
     stone_sword_texture = apply_alpha(stone_sword_texture)
-    iron_sword_texture = jnp.array(
-        load_texture("iron_sword.png", small_block_pixel_size)
-    )
+    iron_sword_texture = jnp.array(load_texture("iron_sword.png", small_block_pixel_size))
     iron_sword_texture = apply_alpha(iron_sword_texture)
 
-    sapling_texture = jnp.array(
-        load_texture("sapling.png", small_block_pixel_size)[:, :, :3]
-    )
+    sapling_texture = jnp.array(load_texture("sapling.png", small_block_pixel_size)[:, :, :3])
 
     # entities
-    zombie_texture_rgba = jnp.array(
-        load_texture("zombie.png", block_pixel_size, clamp_alpha=False)
-    )
+    zombie_texture_rgba = jnp.array(load_texture("zombie.png", block_pixel_size, clamp_alpha=False))
     zombie_texture = zombie_texture_rgba[:, :, :3]
     zombie_texture_alpha = jnp.repeat(
-        jnp.expand_dims(zombie_texture_rgba[:, :, 3], axis=-1).astype(float) / 255,
+        jnp.expand_dims(zombie_texture_rgba[:, :, 3], axis=-1).astype(jnp.float32) / jnp.float32(255),
         repeats=3,
         axis=2,
     )
 
-    cow_texture_rgba = jnp.array(
-        load_texture("cow.png", block_pixel_size, clamp_alpha=False)
-    )
+    cow_texture_rgba = jnp.array(load_texture("cow.png", block_pixel_size, clamp_alpha=False))
     cow_texture = cow_texture_rgba[:, :, :3]
     cow_texture_alpha = jnp.repeat(
-        jnp.expand_dims(cow_texture_rgba[:, :, 3], axis=-1).astype(float) / 255,
+        jnp.expand_dims(cow_texture_rgba[:, :, 3], axis=-1).astype(jnp.float32) / jnp.float32(255),
         repeats=3,
         axis=2,
     )
 
-    skeleton_texture_rgba = jnp.array(
-        load_texture("skeleton.png", block_pixel_size, clamp_alpha=False)
-    )
+    skeleton_texture_rgba = jnp.array(load_texture("skeleton.png", block_pixel_size, clamp_alpha=False))
     skeleton_texture = skeleton_texture_rgba[:, :, :3]
     skeleton_texture_alpha = jnp.repeat(
-        jnp.expand_dims(skeleton_texture_rgba[:, :, 3], axis=-1).astype(float) / 255,
+        jnp.expand_dims(skeleton_texture_rgba[:, :, 3], axis=-1).astype(jnp.float32) / jnp.float32(255),
         repeats=3,
         axis=2,
     )
 
     arrow_texture_rgba = jnp.array(load_texture("arrow-up.png", block_pixel_size))
     arrow_texture = apply_alpha(arrow_texture_rgba)
-    arrow_texture_alpha = jnp.repeat(
-        jnp.expand_dims(arrow_texture_rgba[:, :, 3], axis=-1), repeats=3, axis=2
-    )
+    arrow_texture_alpha = jnp.repeat(jnp.expand_dims(arrow_texture_rgba[:, :, 3], axis=-1), repeats=3, axis=2)
 
     night_texture = (
-        jnp.array([[[0, 16, 64]]])
+        jnp.array([[[0, 16, 64]]], dtype=jnp.int32)
         .repeat(OBS_DIM[0] * block_pixel_size, axis=0)
         .repeat(OBS_DIM[1] * block_pixel_size, axis=1)
     )
 
     xs, ys = np.meshgrid(
-        np.linspace(-1, 1, OBS_DIM[0] * block_pixel_size),
-        np.linspace(-1, 1, OBS_DIM[1] * block_pixel_size),
+        np.linspace(-1, 1, OBS_DIM[0] * block_pixel_size).astype(np.float32),
+        np.linspace(-1, 1, OBS_DIM[1] * block_pixel_size).astype(np.float32),
     )
-    night_noise_intensity_texture = (
-        1 - np.exp(-0.5 * (xs**2 + ys**2) / (0.5**2)).T
-    )
+    night_noise_intensity_texture = np.float32(1) - np.exp(np.float32(-0.5) * (xs**2 + ys**2) / (np.float32(0.5) ** 2)).T
 
     night_noise_intensity_texture = jnp.expand_dims(
-        night_noise_intensity_texture, axis=-1
+        jnp.array(night_noise_intensity_texture, dtype=jnp.float32), axis=-1
     ).repeat(3, axis=-1)
 
     return {
@@ -436,9 +381,7 @@ def load_all_textures(block_pixel_size):
 
 
 load_cached_textures_success = True
-if os.path.exists(TEXTURE_CACHE_FILE) and not os.environ.get(
-    "CRAFTAX_RELOAD_TEXTURES", False
-):
+if os.path.exists(TEXTURE_CACHE_FILE) and not os.environ.get("CRAFTAX_RELOAD_TEXTURES", False):
     print("Loading Craftax-Classic textures from cache.")
     TEXTURES = load_compressed_pickle(TEXTURE_CACHE_FILE)
     # Check validity of texture cache
@@ -458,9 +401,7 @@ else:
     load_cached_textures_success = False
 
 if not load_cached_textures_success:
-    print(
-        "Processing Craftax-Classic textures. This will take a minute but will be cached for future use."
-    )
+    print("Processing Craftax-Classic textures. This will take a minute but will be cached for future use.")
     TEXTURES = {
         BLOCK_PIXEL_SIZE_AGENT: load_all_textures(BLOCK_PIXEL_SIZE_AGENT),
         BLOCK_PIXEL_SIZE_IMG: load_all_textures(BLOCK_PIXEL_SIZE_IMG),
