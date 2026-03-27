@@ -1,8 +1,8 @@
 from functools import partial
 
 from craftax.craftax_classic.constants import *
-from craftax.craftax_classic.game_logic import calculate_light_level, get_distance_map
 from craftax.craftax_classic.envs.craftax_state import EnvState, Inventory, Mobs
+from craftax.craftax_classic.game_logic import calculate_light_level, get_distance_map
 from craftax.craftax_classic.util.noise import generate_fractal_noise_2d
 
 
@@ -17,8 +17,8 @@ def generate_world(rng, params, static_params):
     player_proximity_map = get_distance_map(player_position, static_params).astype(
         jnp.float32
     )
-    player_proximity_map /= 5.0
-    player_proximity_map = jnp.clip(player_proximity_map, 0.0, 1.0)
+    player_proximity_map /= jnp.float32(5.0)
+    player_proximity_map = jnp.clip(player_proximity_map, jnp.float32(0.0), jnp.float32(1.0))
 
     larger_res = (static_params.map_size[0] // 4, static_params.map_size[1] // 4)
     large_res = (static_params.map_size[0] // 8, static_params.map_size[1] // 8)
@@ -35,11 +35,11 @@ def generate_world(rng, params, static_params):
         octaves=1,
         override_angles=fractal_noise_angles[0],
     )
-    water = water + player_proximity_map - 1.0
+    water = water + player_proximity_map - jnp.float32(1.0)
 
     # Water
     rng, _rng = jax.random.split(rng)
-    map = jnp.where(water > 0.7, BlockType.WATER.value, BlockType.GRASS.value)
+    map = jnp.where(water > jnp.float32(0.7), BlockType.WATER.value, BlockType.GRASS.value)
 
     # water = water - 0.15 * mountain + 0.15
 
@@ -48,9 +48,9 @@ def generate_world(rng, params, static_params):
     # c_water_map = jsp.signal.convolve(c_water_map, z, mode="same")
 
     sand_map = jnp.logical_and(
-        water < 0.75,
+        water < jnp.float32(0.75),
         jnp.logical_and(
-            water > 0.6,
+            water > jnp.float32(0.6),
             map != BlockType.WATER.value,
         ),
     )
@@ -63,7 +63,7 @@ def generate_world(rng, params, static_params):
     map = jnp.where(sand_map, BlockType.SAND.value, map)
 
     # Mountain vs grass
-    mountain_threshold = 0.7
+    mountain_threshold = jnp.float32(0.7)
 
     rng, _rng = jax.random.split(rng)
     mountain = (
@@ -74,9 +74,9 @@ def generate_world(rng, params, static_params):
             octaves=1,
             override_angles=fractal_noise_angles[1],
         )
-        + 0.05
+        + jnp.float32(0.05)
     )
-    mountain = mountain + player_proximity_map - 1.0
+    mountain = mountain + player_proximity_map - jnp.float32(1.0)
     map = jnp.where(mountain > mountain_threshold, BlockType.STONE.value, map)
 
     # Paths
@@ -88,36 +88,36 @@ def generate_world(rng, params, static_params):
         octaves=1,
         override_angles=fractal_noise_angles[2],
     )
-    path = jnp.logical_and(mountain > mountain_threshold, path_x > 0.8)
-    map = jnp.where(path > 0.5, BlockType.PATH.value, map)
+    path = jnp.logical_and(mountain > mountain_threshold, path_x > jnp.float32(0.8))
+    map = jnp.where(path > jnp.float32(0.5), BlockType.PATH.value, map)
 
     path_y = path_x.T
-    path = jnp.logical_and(mountain > mountain_threshold, path_y > 0.8)
-    map = jnp.where(path > 0.5, BlockType.PATH.value, map)
+    path = jnp.logical_and(mountain > mountain_threshold, path_y > jnp.float32(0.8))
+    map = jnp.where(path > jnp.float32(0.5), BlockType.PATH.value, map)
 
     # Caves
     rng, _rng = jax.random.split(rng)
-    caves = jnp.logical_and(mountain > 0.85, water > 0.4)
-    map = jnp.where(caves > 0.5, BlockType.PATH.value, map)
+    caves = jnp.logical_and(mountain > jnp.float32(0.85), water > jnp.float32(0.4))
+    map = jnp.where(caves > jnp.float32(0.5), BlockType.PATH.value, map)
 
     # Ores
     rng, _rng = jax.random.split(rng)
     coal_map = jnp.logical_and(
         map == BlockType.STONE.value,
-        jax.random.uniform(_rng, static_params.map_size) < 0.04,
+        jax.random.uniform(_rng, static_params.map_size) < jnp.float32(0.04),
     )
     map = jnp.where(coal_map, BlockType.COAL.value, map)
 
     rng, _rng = jax.random.split(rng)
     iron_map = jnp.logical_and(
         map == BlockType.STONE.value,
-        jax.random.uniform(_rng, static_params.map_size) < 0.03,
+        jax.random.uniform(_rng, static_params.map_size) < jnp.float32(0.03),
     )
     map = jnp.where(iron_map, BlockType.IRON.value, map)
 
     rng, _rng = jax.random.split(rng)
     diamond_map = jnp.logical_and(
-        mountain > 0.8, jax.random.uniform(_rng, static_params.map_size) < 0.005
+        mountain > jnp.float32(0.8), jax.random.uniform(_rng, static_params.map_size) < jnp.float32(0.005)
     )
     diamond_map = jnp.logical_and(diamond_map, map == BlockType.STONE.value)
     map = jnp.where(diamond_map, BlockType.DIAMOND.value, map)
@@ -131,16 +131,16 @@ def generate_world(rng, params, static_params):
         octaves=1,
         override_angles=fractal_noise_angles[3],
     )
-    tree = (tree_noise > 0.5) * jax.random.uniform(
+    tree = (tree_noise > jnp.float32(0.5)) * jax.random.uniform(
         rng, shape=static_params.map_size
-    ) > 0.8
+    ) > jnp.float32(0.8)
     tree = jnp.logical_and(tree, map == BlockType.GRASS.value)
     map = jnp.where(tree, BlockType.TREE.value, map)
 
     # Lava
     lava_map = jnp.logical_and(
-        mountain > 0.85,
-        tree_noise > 0.7,
+        mountain > jnp.float32(0.85),
+        tree_noise > jnp.float32(0.7),
     )
     map = jnp.where(lava_map, BlockType.LAVA.value, map)
 
