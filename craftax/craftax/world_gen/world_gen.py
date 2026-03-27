@@ -2,8 +2,8 @@ import jax
 import jax.scipy as jsp
 
 from craftax.craftax.constants import *
-from craftax.craftax.game_logic import calculate_light_level, get_distance_map
 from craftax.craftax.craftax_state import EnvState, Inventory, Mobs
+from craftax.craftax.game_logic import calculate_light_level, get_distance_map
 from craftax.craftax.util.noise import generate_fractal_noise_2d
 from craftax.craftax.world_gen.world_gen_configs import (
     ALL_DUNGEON_CONFIGS,
@@ -173,7 +173,7 @@ def generate_dungeon(rng, static_params, config):
             minval=jnp.ones(2),
             maxval=room_sizes[room_index] - jnp.ones(2),
         )
-        room_has_fountain = jax.random.uniform(__rng) > 0.5
+        room_has_fountain = jax.random.uniform(__rng, dtype=jnp.float32) > jnp.float32(0.5)
         fountain_block = (
             room_has_fountain * config.fountain_block
             + (1 - room_has_fountain)
@@ -285,14 +285,14 @@ def generate_dungeon(rng, static_params, config):
     c_path_map = map != BlockType.WALL.value
     z = jnp.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
     adj_path_map = jsp.signal.convolve(c_path_map, z, mode="same")
-    adj_path_map = adj_path_map > 0.5
+    adj_path_map = adj_path_map > jnp.float32(0.5)
 
     rng, _rng = jax.random.split(rng)
     rare_map = jax.random.choice(
         _rng,
         jnp.array([False, True]),
         static_params.map_size,
-        p=jnp.array([0.9, 0.1]),
+        p=jnp.array([0.9, 0.1], dtype=jnp.float32),
     )
 
     wall_map = (
@@ -362,7 +362,9 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         player_proximity_map / config.player_proximity_map_water_strength
     )
     player_proximity_map_water = jnp.clip(
-        player_proximity_map_water, 0.0, config.player_proximity_map_water_max
+        player_proximity_map_water,
+        jnp.float32(0.0),
+        config.player_proximity_map_water_max,
     )
 
     player_proximity_map_mountain = (
@@ -370,7 +372,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
     )
     player_proximity_map_mountain = jnp.clip(
         player_proximity_map_mountain,
-        0.0,
+        jnp.float32(0.0),
         config.player_proximity_map_mountain_max,
     )
 
@@ -386,7 +388,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         octaves=1,
         override_angles=params.fractal_noise_angles[0],
     )
-    water = water + player_proximity_map_water - 1.0
+    water = water + player_proximity_map_water - jnp.float32(1.0)
 
     # Water
     rng, _rng = jax.random.split(rng)
@@ -402,7 +404,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
     map = jnp.where(sand_map, config.coast_block, map)
 
     # Mountain vs grass
-    mountain_threshold = 0.7
+    mountain_threshold = jnp.float32(0.7)
 
     rng, _rng = jax.random.split(rng)
     mountain = (
@@ -413,9 +415,9 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
             octaves=1,
             override_angles=params.fractal_noise_angles[1],
         )
-        + 0.05
+        + jnp.float32(0.05)
     )
-    mountain = mountain + player_proximity_map_mountain - 1.0
+    mountain = mountain + player_proximity_map_mountain - jnp.float32(1.0)
     map = jnp.where(mountain > mountain_threshold, config.mountain_block, map)
 
     # Paths
@@ -427,17 +429,17 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         octaves=1,
         override_angles=params.fractal_noise_angles[2],
     )
-    path = jnp.logical_and(mountain > mountain_threshold, path_x > 0.8)
-    map = jnp.where(path > 0.5, config.path_block, map)
+    path = jnp.logical_and(mountain > mountain_threshold, path_x > jnp.float32(0.8))
+    map = jnp.where(path > jnp.float32(0.5), config.path_block, map)
 
     path_y = path_x.T
-    path = jnp.logical_and(mountain > mountain_threshold, path_y > 0.8)
-    map = jnp.where(path > 0.5, config.path_block, map)
+    path = jnp.logical_and(mountain > mountain_threshold, path_y > jnp.float32(0.8))
+    map = jnp.where(path > jnp.float32(0.5), config.path_block, map)
 
     # Caves
     rng, _rng = jax.random.split(rng)
-    caves = jnp.logical_and(mountain > 0.85, water > 0.4)
-    map = jnp.where(caves > 0.5, config.inner_mountain_block, map)
+    caves = jnp.logical_and(mountain > jnp.float32(0.85), water > jnp.float32(0.4))
+    map = jnp.where(caves > jnp.float32(0.5), config.inner_mountain_block, map)
 
     # Trees
     rng, _rng = jax.random.split(rng)
@@ -449,7 +451,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         override_angles=params.fractal_noise_angles[3],
     )
     tree = (tree_noise > config.tree_threshold_perlin) * jax.random.uniform(
-        rng, shape=static_params.map_size
+        rng, shape=static_params.map_size, dtype=jnp.float32
     ) > config.tree_threshold_uniform
     tree = jnp.logical_and(tree, map == config.tree_requirement_block)
     map = jnp.where(tree, config.tree, map)
@@ -460,7 +462,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         rng, _rng = jax.random.split(rng)
         ore_map = jnp.logical_and(
             map == config.ore_requirement_blocks[index],
-            jax.random.uniform(_rng, static_params.map_size)
+            jax.random.uniform(_rng, static_params.map_size, dtype=jnp.float32)
             < config.ore_chances[index],
         )
         map = jnp.where(ore_map, config.ores[index], map)
@@ -472,8 +474,8 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
 
     # Lava
     lava_map = jnp.logical_and(
-        mountain > 0.85,
-        tree_noise > 0.7,
+        mountain > jnp.float32(0.85),
+        tree_noise > jnp.float32(0.7),
     )
     map = jnp.where(lava_map, config.lava, map)
 
@@ -543,19 +545,20 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         ]
     )
 
-    LIGHT_MAP_AROUND_LADDER = TORCH_LIGHT_MAP * (
-        1 - config.default_light
-    ) + config.default_light * jnp.ones((9, 9))
+    LIGHT_MAP_AROUND_LADDER = (
+        TORCH_LIGHT_MAP * (jnp.float32(1.0) - config.default_light)
+        + config.default_light * jnp.ones((9, 9), dtype=jnp.float32)
+    ).astype(jnp.float32)
 
     light_map = jax.lax.dynamic_update_slice(
         light_map, LIGHT_MAP_AROUND_LADDER, ladder_up - jnp.array([4, 4])
     )
 
-    z = jnp.array([[0.2, 0.7, 0.2], [0.7, 1, 0.7], [0.2, 0.7, 0.2]]) * (
+    z = jnp.array([[0.2, 0.7, 0.2], [0.7, 1, 0.7], [0.2, 0.7, 0.2]], dtype=jnp.float32) * (
         config.lava == BlockType.LAVA.value
     )
     light_map += jsp.signal.convolve(lava_map, z, mode="same")
-    light_map = jnp.clip(light_map, 0.0, 1.0)
+    light_map = jnp.clip(light_map, jnp.float32(0.0), jnp.float32(1.0))
 
     item_map = item_map.at[ladder_up[0], ladder_up[1]].set(
         ItemType.LADDER_UP.value * config.ladder_up

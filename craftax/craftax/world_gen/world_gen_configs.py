@@ -1,6 +1,6 @@
 import jax
-from flax import struct
 import jax.numpy as jnp
+from flax import struct
 
 from craftax.craftax.constants import BlockType
 
@@ -51,7 +51,7 @@ OVERWORLD_CONFIG = SmoothGenConfig(
             BlockType.OUT_OF_BOUNDS.value,
         ]
     ),
-    ore_chances=jnp.array([0.03, 0.02, 0.001, 0.0, 0.0]),
+    ore_chances=jnp.array([0.03, 0.02, 0.001, 0.0, 0.0], dtype=jnp.float32),
     tree_requirement_block=BlockType.GRASS.value,
     tree=BlockType.TREE.value,
     lava=BlockType.LAVA.value,
@@ -63,11 +63,11 @@ OVERWORLD_CONFIG = SmoothGenConfig(
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=5,
     player_proximity_map_mountain_max=1,
-    default_light=1.0,
-    water_threshold=0.7,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.8,
-    tree_threshold_perlin=0.5,
+    default_light=jnp.float32(1.0),
+    water_threshold=jnp.float32(0.7),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.8),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 GNOMISH_MINES_CONFIG = SmoothGenConfig(
@@ -87,7 +87,7 @@ GNOMISH_MINES_CONFIG = SmoothGenConfig(
             BlockType.RUBY.value,
         ]
     ),
-    ore_chances=jnp.array([0.04, 0.02, 0.005, 0.0025, 0.0025]),
+    ore_chances=jnp.array([0.04, 0.02, 0.005, 0.0025, 0.0025], dtype=jnp.float32),
     tree_requirement_block=BlockType.PATH.value,
     tree=BlockType.STALAGMITE.value,
     lava=BlockType.LAVA.value,
@@ -98,12 +98,12 @@ GNOMISH_MINES_CONFIG = SmoothGenConfig(
     player_proximity_map_water_strength=5,
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=17,
-    player_proximity_map_mountain_max=1.5,
-    default_light=0.0,
-    water_threshold=0.7,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.8,
-    tree_threshold_perlin=0.5,
+    player_proximity_map_mountain_max=jnp.float32(1.5),
+    default_light=jnp.float32(0.0),
+    water_threshold=jnp.float32(0.7),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.8),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 TROLL_MINES_CONFIG = SmoothGenConfig(
@@ -123,7 +123,7 @@ TROLL_MINES_CONFIG = SmoothGenConfig(
             BlockType.RUBY.value,
         ]
     ),
-    ore_chances=jnp.array([0.04, 0.03, 0.01, 0.01, 0.01]),
+    ore_chances=jnp.array([0.04, 0.03, 0.01, 0.01, 0.01], dtype=jnp.float32),
     tree_requirement_block=BlockType.PATH.value,
     tree=BlockType.STALAGMITE.value,
     lava=BlockType.LAVA.value,
@@ -134,12 +134,12 @@ TROLL_MINES_CONFIG = SmoothGenConfig(
     player_proximity_map_water_strength=5,
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=17,
-    player_proximity_map_mountain_max=1.5,
-    default_light=0.0,
-    water_threshold=0.7,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.8,
-    tree_threshold_perlin=0.5,
+    player_proximity_map_mountain_max=jnp.float32(1.5),
+    default_light=jnp.float32(0.0),
+    water_threshold=jnp.float32(0.7),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.8),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 FIRE_LEVEL_CONFIG = SmoothGenConfig(
@@ -159,7 +159,7 @@ FIRE_LEVEL_CONFIG = SmoothGenConfig(
             BlockType.RUBY.value,
         ]
     ),
-    ore_chances=jnp.array([0.05, 0.0, 0.0, 0.0, 0.025]),
+    ore_chances=jnp.array([0.05, 0.0, 0.0, 0.0, 0.025], dtype=jnp.float32),
     tree_requirement_block=BlockType.FIRE_GRASS.value,
     tree=BlockType.FIRE_TREE.value,
     lava=BlockType.LAVA.value,
@@ -171,11 +171,11 @@ FIRE_LEVEL_CONFIG = SmoothGenConfig(
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=5,
     player_proximity_map_mountain_max=1,
-    default_light=1.0,
-    water_threshold=0.5,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.8,
-    tree_threshold_perlin=0.5,
+    default_light=jnp.float32(1.0),
+    water_threshold=jnp.float32(0.5),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.8),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 ICE_LEVEL_CONFIG = SmoothGenConfig(
@@ -195,7 +195,7 @@ ICE_LEVEL_CONFIG = SmoothGenConfig(
             BlockType.RUBY.value,
         ]
     ),
-    ore_chances=jnp.array([0.0, 0.0, 0.005, 0.02, 0.0]),
+    ore_chances=jnp.array([0.0, 0.0, 0.005, 0.02, 0.0], dtype=jnp.float32),
     tree_requirement_block=BlockType.ICE_GRASS.value,
     tree=BlockType.ICE_SHRUB.value,
     lava=BlockType.WATER.value,
@@ -206,12 +206,12 @@ ICE_LEVEL_CONFIG = SmoothGenConfig(
     player_proximity_map_water_strength=5,
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=17,
-    player_proximity_map_mountain_max=1.5,
-    default_light=0.0,
-    water_threshold=0.5,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.4,
-    tree_threshold_perlin=0.5,
+    player_proximity_map_mountain_max=jnp.float32(1.5),
+    default_light=jnp.float32(0.0),
+    water_threshold=jnp.float32(0.5),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.4),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 BOSS_LEVEL_CONFIG = SmoothGenConfig(
@@ -239,7 +239,7 @@ BOSS_LEVEL_CONFIG = SmoothGenConfig(
             BlockType.RUBY.value,
         ]
     ),
-    ore_chances=jnp.array([0.1, 0.333, 0.5, 0.0, 0.0]),
+    ore_chances=jnp.array([0.1, 0.333, 0.5, 0.0, 0.0], dtype=jnp.float32),
     tree_requirement_block=BlockType.PATH.value,
     tree=BlockType.GRAVE.value,
     lava=BlockType.WALL.value,
@@ -251,11 +251,11 @@ BOSS_LEVEL_CONFIG = SmoothGenConfig(
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=10,
     player_proximity_map_mountain_max=10,
-    default_light=0.0,
-    water_threshold=0.7,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.95,
-    tree_threshold_perlin=-1.0,
+    default_light=jnp.float32(0.0),
+    water_threshold=jnp.float32(0.7),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.95),
+    tree_threshold_perlin=jnp.float32(-1.0),
 )
 
 ALL_SMOOTHGEN_CONFIGS = jax.tree_util.tree_map(
