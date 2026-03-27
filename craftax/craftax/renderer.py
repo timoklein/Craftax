@@ -364,7 +364,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
                 (
                     local_position[0] * block_pixel_size,
                     local_position[1] * block_pixel_size,
-                    0,
+                    jnp.int32(0),
                 ),
                 (block_pixel_size, block_pixel_size, 3),
             )
@@ -381,7 +381,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             (
                 local_position[0] * block_pixel_size,
                 local_position[1] * block_pixel_size,
-                0,
+                jnp.int32(0),
             ),
         )
 
@@ -485,7 +485,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
                 (
                     local_position[0] * block_pixel_size,
                     local_position[1] * block_pixel_size,
-                    0,
+                    jnp.int32(0),
                 ),
                 (block_pixel_size, block_pixel_size, 3),
             )
@@ -502,7 +502,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             (
                 local_position[0] * block_pixel_size,
                 local_position[1] * block_pixel_size,
-                0,
+                jnp.int32(0),
             ),
         )
 
@@ -542,7 +542,11 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
 
     if do_night_noise:
         night_noise = (
-            jax.random.uniform(state.state_rng, night_pixels.shape[:2]) * 95 + 32
+            jax.random.uniform(
+                state.state_rng, night_pixels.shape[:2], dtype=jnp.float32
+            )
+            * 95
+            + 32
         )
         night_noise = jnp.expand_dims(night_noise, axis=-1).repeat(3, axis=-1)
 

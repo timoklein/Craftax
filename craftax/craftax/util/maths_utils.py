@@ -14,7 +14,7 @@ def get_distance_map(position, map_size):
     coords = jnp.stack([dist_x, dist_y], axis=-1)
 
     def _euclid_distance(x):
-        return jnp.sqrt(x[0] ** 2 + x[1] ** 2)
+        return jnp.sqrt((x[0] ** 2 + x[1] ** 2).astype(jnp.float32))
 
     dist = jax.vmap(jax.vmap(_euclid_distance))(coords)
 

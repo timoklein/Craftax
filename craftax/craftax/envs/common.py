@@ -3,7 +3,7 @@ from craftax.craftax.craftax_state import EnvState
 
 
 def log_achievements_to_info(state: EnvState, done: bool):
-    achievements = state.achievements * done * 100.0
+    achievements = state.achievements * done * jnp.float32(100.0)
     info = {}
     for achievement in Achievement:
         name = f"Achievements/{achievement.name.lower()}"

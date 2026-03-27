@@ -175,7 +175,7 @@ def generate_dungeon(rng, static_params, config):
             minval=jnp.ones(2, dtype=jnp.int32),
             maxval=room_sizes[room_index] - jnp.ones(2, dtype=jnp.int32),
         )
-        room_has_fountain = jax.random.uniform(__rng) > 0.5
+        room_has_fountain = jax.random.uniform(__rng, dtype=jnp.float32) > 0.5
         fountain_block = (
             room_has_fountain * config.fountain_block
             + (1 - room_has_fountain)
@@ -205,7 +205,9 @@ def generate_dungeon(rng, static_params, config):
 
         rng, _rng = jax.random.split(rng)
         sink_index = jax.random.choice(
-            _rng, jnp.arange(num_rooms), p=included_rooms_mask
+            _rng,
+            jnp.arange(num_rooms),
+            p=included_rooms_mask.astype(jnp.float32),
         )
         path_sink = room_positions[sink_index]
 
@@ -332,14 +334,15 @@ def generate_dungeon(rng, static_params, config):
         [
             ladder_index // static_params.map_size[0],
             ladder_index % static_params.map_size[0],
-        ]
+        ],
+        dtype=jnp.int32,
     )
 
     item_map = item_map.at[ladder_down_position[0], ladder_down_position[1]].set(
         ItemType.LADDER_DOWN.value
     )
 
-    valid_ladder_up = map.flatten() == BlockType.PATH.value
+    valid_ladder_up = (map.flatten() == BlockType.PATH.value).astype(jnp.float32)
     rng, _rng = jax.random.split(rng)
     ladder_index = jax.random.choice(
         _rng,
@@ -350,7 +353,8 @@ def generate_dungeon(rng, static_params, config):
         [
             ladder_index // static_params.map_size[0],
             ladder_index % static_params.map_size[0],
-        ]
+        ],
+        dtype=jnp.int32,
     )
     item_map = item_map.at[ladder_up_position[0], ladder_up_position[1]].set(
         ItemType.LADDER_UP.value
@@ -454,7 +458,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         override_angles=params.fractal_noise_angles[3],
     )
     tree = (tree_noise > config.tree_threshold_perlin) * jax.random.uniform(
-        rng, shape=static_params.map_size
+        rng, shape=static_params.map_size, dtype=jnp.float32
     ) > config.tree_threshold_uniform
     tree = jnp.logical_and(tree, map == config.tree_requirement_block)
     map = jnp.where(tree, config.tree, map)
@@ -465,7 +469,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         rng, _rng = jax.random.split(rng)
         ore_map = jnp.logical_and(
             map == config.ore_requirement_blocks[index],
-            jax.random.uniform(_rng, static_params.map_size)
+            jax.random.uniform(_rng, static_params.map_size, dtype=jnp.float32)
             < config.ore_chances[index],
         )
         map = jnp.where(ore_map, config.ores[index], map)
@@ -498,10 +502,13 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         [
             diamond_index // static_params.map_size[0],
             diamond_index % static_params.map_size[0],
-        ]
+        ],
+        dtype=jnp.int32,
     )
-    diamond_replace_block = jax.lax.select(
-        adding_diamond, BlockType.DIAMOND.value, BlockType.STONE.value
+    diamond_replace_block = jnp.where(
+        adding_diamond,
+        jnp.int32(BlockType.DIAMOND.value),
+        jnp.int32(BlockType.STONE.value),
     )
     map = map.at[diamond_position[0], diamond_position[1]].set(diamond_replace_block)
 
@@ -515,7 +522,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
 
     item_map = jnp.zeros(static_params.map_size, dtype=jnp.int32)
 
-    valid_ladder_down = map.flatten() == config.valid_ladder
+    valid_ladder_down = (map.flatten() == config.valid_ladder).astype(jnp.float32)
     rng, _rng = jax.random.split(rng)
     ladder_index = jax.random.choice(
         _rng,
@@ -526,7 +533,8 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         [
             ladder_index // static_params.map_size[0],
             ladder_index % static_params.map_size[0],
-        ]
+        ],
+        dtype=jnp.int32,
     )
 
     item_map = item_map.at[ladder_down[0], ladder_down[1]].set(
@@ -534,7 +542,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         + item_map[ladder_down[0], ladder_down[1]] * (1 - config.ladder_down)
     )
 
-    valid_ladder_up = map.flatten() == config.valid_ladder
+    valid_ladder_up = (map.flatten() == config.valid_ladder).astype(jnp.float32)
     rng, _rng = jax.random.split(rng)
     ladder_index = jax.random.choice(
         _rng,
@@ -545,7 +553,8 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         [
             ladder_index // static_params.map_size[0],
             ladder_index % static_params.map_size[0],
-        ]
+        ],
+        dtype=jnp.int32,
     )
 
     LIGHT_MAP_AROUND_LADDER = TORCH_LIGHT_MAP * (
@@ -562,7 +571,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         [[0.2, 0.7, 0.2], [0.7, 1, 0.7], [0.2, 0.7, 0.2]], dtype=jnp.float32
     ) * (config.lava == BlockType.LAVA.value)
     light_map += jsp.signal.convolve(lava_map, z, mode="same")
-    light_map = jnp.clip(light_map, 0.0, 1.0)
+    light_map = jnp.clip(light_map, jnp.float32(0.0), jnp.float32(1.0))
 
     item_map = item_map.at[ladder_up[0], ladder_up[1]].set(
         ItemType.LADDER_UP.value * config.ladder_up
@@ -574,7 +583,8 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
 
 def generate_world(rng, params, static_params):
     player_position = jnp.array(
-        [static_params.map_size[0] // 2, static_params.map_size[1] // 2]
+        [static_params.map_size[0] // 2, static_params.map_size[1] // 2],
+        dtype=jnp.int32,
     )
 
     # Generate smoothgens (overworld, caves, elemental levels, boss level)
@@ -645,11 +655,11 @@ def generate_world(rng, params, static_params):
 
     # Potion mapping for episode
     rng, _rng = jax.random.split(rng)
-    potion_mapping = jax.random.permutation(_rng, jnp.arange(6))
+    potion_mapping = jax.random.permutation(_rng, jnp.arange(6, dtype=jnp.int32))
 
     # Inventory
     inventory = jax.tree_util.tree_map(
-        lambda x, y: jax.lax.select(params.god_mode, x, y),
+        lambda x, y: jnp.where(params.god_mode, x, y),
         get_new_full_inventory(),
         get_new_empty_inventory(),
     )

@@ -1,6 +1,55 @@
 from craftax.craftax.util.game_logic_utils import *
 
 
+def enforce_state_dtypes(state):
+    """Cast all scalar state fields to canonical dtypes (float32/int32).
+
+    Prevents float64/int64 accumulation from Python literal type promotion under x64.
+    """
+    return state.replace(
+        player_health=jnp.float32(state.player_health),
+        player_food=jnp.int32(state.player_food),
+        player_drink=jnp.int32(state.player_drink),
+        player_energy=jnp.int32(state.player_energy),
+        player_mana=jnp.int32(state.player_mana),
+        player_recover=jnp.float32(state.player_recover),
+        player_hunger=jnp.float32(state.player_hunger),
+        player_thirst=jnp.float32(state.player_thirst),
+        player_fatigue=jnp.float32(state.player_fatigue),
+        player_recover_mana=jnp.float32(state.player_recover_mana),
+        player_xp=jnp.int32(state.player_xp),
+        player_dexterity=jnp.int32(state.player_dexterity),
+        player_strength=jnp.int32(state.player_strength),
+        player_intelligence=jnp.int32(state.player_intelligence),
+        player_level=jnp.int32(state.player_level),
+        player_direction=jnp.int32(state.player_direction),
+        sword_enchantment=jnp.int32(state.sword_enchantment),
+        bow_enchantment=jnp.int32(state.bow_enchantment),
+        boss_progress=jnp.int32(state.boss_progress),
+        boss_timesteps_to_spawn_this_round=jnp.int32(
+            state.boss_timesteps_to_spawn_this_round
+        ),
+        light_level=jnp.float32(state.light_level),
+        timestep=jnp.int32(state.timestep),
+        inventory=state.inventory.replace(
+            wood=jnp.int32(state.inventory.wood),
+            stone=jnp.int32(state.inventory.stone),
+            coal=jnp.int32(state.inventory.coal),
+            iron=jnp.int32(state.inventory.iron),
+            diamond=jnp.int32(state.inventory.diamond),
+            sapling=jnp.int32(state.inventory.sapling),
+            pickaxe=jnp.int32(state.inventory.pickaxe),
+            sword=jnp.int32(state.inventory.sword),
+            bow=jnp.int32(state.inventory.bow),
+            arrows=jnp.int32(state.inventory.arrows),
+            torches=jnp.int32(state.inventory.torches),
+            ruby=jnp.int32(state.inventory.ruby),
+            sapphire=jnp.int32(state.inventory.sapphire),
+            books=jnp.int32(state.inventory.books),
+        ),
+    )
+
+
 def is_game_over(state, params, static_env_params):
     done_steps = state.timestep >= params.max_timesteps
     is_dead = state.player_health <= 0
@@ -25,23 +74,25 @@ def update_plants_with_eat(state, plant_position, static_params):
 def add_items_from_chest(rng, state, inventory, is_opening_chest):
     # Wood (60%)
     rng, _rng = jax.random.split(rng)
-    is_looting_wood = jax.random.uniform(_rng) < 0.6
+    is_looting_wood = jax.random.uniform(_rng, dtype=jnp.float32) < 0.6
     rng, _rng = jax.random.split(rng)
     wood_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=1, maxval=6) * is_looting_wood
+        jax.random.randint(_rng, shape=(), minval=1, maxval=6, dtype=jnp.int32)
+        * is_looting_wood
     )
 
     # Torch (60%)
     rng, _rng = jax.random.split(rng)
-    is_looting_torch = jax.random.uniform(_rng) < 0.6
+    is_looting_torch = jax.random.uniform(_rng, dtype=jnp.float32) < 0.6
     rng, _rng = jax.random.split(rng)
     torch_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=4, maxval=8) * is_looting_torch
+        jax.random.randint(_rng, shape=(), minval=4, maxval=8, dtype=jnp.int32)
+        * is_looting_torch
     )
 
     # Ores (60%)
     rng, _rng = jax.random.split(rng)
-    is_looting_ore = jax.random.uniform(_rng) < 0.6
+    is_looting_ore = jax.random.uniform(_rng, dtype=jnp.float32) < 0.6
     rng, _rng = jax.random.split(rng)
     ore_loot_id = jax.random.choice(
         _rng,
@@ -53,52 +104,57 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Use the same rng as events are mutually exclusive
     coal_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=1, maxval=4)
+        jax.random.randint(_rng, shape=(), minval=1, maxval=4, dtype=jnp.int32)
         * (ore_loot_id == 0)
         * is_looting_ore
     )
     iron_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=1, maxval=3)
+        jax.random.randint(_rng, shape=(), minval=1, maxval=3, dtype=jnp.int32)
         * (ore_loot_id == 1)
         * is_looting_ore
     )
     diamond_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=1, maxval=2)
+        jax.random.randint(_rng, shape=(), minval=1, maxval=2, dtype=jnp.int32)
         * (ore_loot_id == 2)
         * is_looting_ore
     )
     sapphire_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=1, maxval=2)
+        jax.random.randint(_rng, shape=(), minval=1, maxval=2, dtype=jnp.int32)
         * (ore_loot_id == 3)
         * is_looting_ore
     )
     ruby_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=1, maxval=2)
+        jax.random.randint(_rng, shape=(), minval=1, maxval=2, dtype=jnp.int32)
         * (ore_loot_id == 4)
         * is_looting_ore
     )
 
     # Potion (50%)
     rng, _rng = jax.random.split(rng)
-    is_looting_potion = jax.random.uniform(_rng) < 0.5
+    is_looting_potion = jax.random.uniform(_rng, dtype=jnp.float32) < 0.5
     rng, _rng = jax.random.split(rng)
-    potion_loot_index = jax.random.randint(_rng, shape=(), minval=0, maxval=6)
+    potion_loot_index = jax.random.randint(
+        _rng, shape=(), minval=0, maxval=6, dtype=jnp.int32
+    )
     rng, _rng = jax.random.split(rng)
-    potion_loot_amount = jax.random.randint(_rng, shape=(), minval=1, maxval=3)
+    potion_loot_amount = jax.random.randint(
+        _rng, shape=(), minval=1, maxval=3, dtype=jnp.int32
+    )
 
     # Arrows (25%)
     rng, _rng = jax.random.split(rng)
-    is_looting_arrows = jax.random.uniform(_rng) < 0.25
+    is_looting_arrows = jax.random.uniform(_rng, dtype=jnp.float32) < 0.25
     rng, _rng = jax.random.split(rng)
     arrows_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=1, maxval=5) * is_looting_arrows
+        jax.random.randint(_rng, shape=(), minval=1, maxval=5, dtype=jnp.int32)
+        * is_looting_arrows
     )
 
     # Tools (20%)
     rng, _rng = jax.random.split(rng)
-    is_looting_tool = jax.random.uniform(_rng) < 0.2
+    is_looting_tool = jax.random.uniform(_rng, dtype=jnp.float32) < 0.2
     rng, _rng = jax.random.split(rng)
-    tool_id = jax.random.randint(_rng, shape=(), minval=0, maxval=2)
+    tool_id = jax.random.randint(_rng, shape=(), minval=0, maxval=2, dtype=jnp.int32)
 
     is_looting_pickaxe = jnp.logical_and(
         jnp.logical_and(is_looting_tool, tool_id == 0), is_opening_chest
@@ -353,7 +409,7 @@ def do_action(rng, state, action, static_params):
     is_mining_sapling = jnp.logical_and(
         state.map[state.player_level][block_position[0], block_position[1]]
         == BlockType.GRASS.value,
-        jax.random.uniform(_rng) < 0.1,
+        jax.random.uniform(_rng, dtype=jnp.float32) < 0.1,
     )
 
     new_inventory = new_inventory.replace(
@@ -974,7 +1030,9 @@ def place_block(state, action, static_params):
         (9, 9),
     )
 
-    torch_light_map = jnp.clip(TORCH_LIGHT_MAP + current_light_map, 0.0, 1.0)
+    torch_light_map = jnp.clip(
+        TORCH_LIGHT_MAP + current_light_map, jnp.float32(0.0), jnp.float32(1.0)
+    )
 
     torch_light_map = torch_light_map * is_placing_torch + current_light_map * (
         1 - is_placing_torch
@@ -1116,7 +1174,7 @@ def update_mobs(rng, state, params, static_params):
         )
         player_move_direction_index_p = (
             player_move_direction_abs == player_move_direction_abs.max()
-        ) / player_move_direction_abs.sum()
+        ).astype(jnp.float32) / player_move_direction_abs.sum()
         rng, _rng = jax.random.split(rng)
         player_move_direction_index = jax.random.choice(
             _rng,
@@ -1155,7 +1213,7 @@ def update_mobs(rng, state, params, static_params):
 
         rng, _rng = jax.random.split(rng)
         close_to_player = jnp.logical_and(
-            close_to_player, jax.random.uniform(_rng) < 0.75
+            close_to_player, jax.random.uniform(_rng, dtype=jnp.float32) < 0.75
         )
 
         proposed_position = jnp.where(
@@ -1407,7 +1465,7 @@ def update_mobs(rng, state, params, static_params):
         )
         player_move_direction_index_p = (
             player_move_direction_abs == player_move_direction_abs.max()
-        ) / player_move_direction_abs.sum()
+        ).astype(jnp.float32) / player_move_direction_abs.sum()
         rng, _rng = jax.random.split(rng)
         player_move_direction_index = jax.random.choice(
             _rng,
@@ -1459,7 +1517,7 @@ def update_mobs(rng, state, params, static_params):
         rng, _rng = jax.random.split(rng)
 
         proposed_position = jnp.where(
-            jax.random.uniform(_rng) > 0.85,
+            jax.random.uniform(_rng, dtype=jnp.float32) > 0.85,
             proposed_position,
             random_move_proposed_position,
         )
@@ -2088,7 +2146,7 @@ def spawn_mobs(state, rng, params, static_params):
     rng, _rng = jax.random.split(rng)
     can_spawn_passive_mob = jnp.logical_and(
         can_spawn_passive_mob,
-        jax.random.uniform(_rng) < FLOOR_MOB_SPAWN_CHANCE[state.player_level, 0],
+        jax.random.uniform(_rng, dtype=jnp.float32) < FLOOR_MOB_SPAWN_CHANCE[state.player_level, 0],
     )
 
     can_spawn_passive_mob = jnp.logical_and(
@@ -2125,12 +2183,12 @@ def spawn_mobs(state, rng, params, static_params):
     )
 
     rng, _rng = jax.random.split(rng)
+    passive_spawn_p = jnp.reshape(passive_mobs_can_spawn_map, -1).astype(jnp.float32)
     passive_mob_position = jax.random.choice(
         _rng,
         jnp.arange(static_params.map_size[0] * static_params.map_size[1]),
         shape=(1,),
-        p=jnp.reshape(passive_mobs_can_spawn_map, -1)
-        / jnp.sum(passive_mobs_can_spawn_map),
+        p=passive_spawn_p / passive_spawn_p.sum(),
     )
     passive_mob_position = jnp.array(
         [
@@ -2227,7 +2285,7 @@ def spawn_mobs(state, rng, params, static_params):
     )
     can_spawn_melee_mob = jnp.logical_and(
         can_spawn_melee_mob,
-        jax.random.uniform(_rng) < melee_mob_spawn_chance * monster_spawn_coeff,
+        jax.random.uniform(_rng, dtype=jnp.float32) < melee_mob_spawn_chance * monster_spawn_coeff,
     )
 
     melee_mobs_can_spawn_map = jnp.where(
@@ -2249,11 +2307,12 @@ def spawn_mobs(state, rng, params, static_params):
     )
 
     rng, _rng = jax.random.split(rng)
+    melee_spawn_p = jnp.reshape(melee_mobs_can_spawn_map, -1).astype(jnp.float32)
     melee_mob_position = jax.random.choice(
         _rng,
         jnp.arange(static_params.map_size[0] * static_params.map_size[1]),
         shape=(1,),
-        p=jnp.reshape(melee_mobs_can_spawn_map, -1) / jnp.sum(melee_mobs_can_spawn_map),
+        p=melee_spawn_p / melee_spawn_p.sum(),
     )
     melee_mob_position = jnp.array(
         [
@@ -2335,7 +2394,7 @@ def spawn_mobs(state, rng, params, static_params):
     rng, _rng = jax.random.split(rng)
     can_spawn_ranged_mob = jnp.logical_and(
         can_spawn_ranged_mob,
-        jax.random.uniform(_rng)
+        jax.random.uniform(_rng, dtype=jnp.float32)
         < FLOOR_MOB_SPAWN_CHANCE[state.player_level, 2] * monster_spawn_coeff,
     )
 
@@ -2364,12 +2423,12 @@ def spawn_mobs(state, rng, params, static_params):
     )
 
     rng, _rng = jax.random.split(rng)
+    ranged_spawn_p = jnp.reshape(ranged_mobs_can_spawn_map, -1).astype(jnp.float32)
     ranged_mob_position = jax.random.choice(
         _rng,
         jnp.arange(static_params.map_size[0] * static_params.map_size[1]),
         shape=(1,),
-        p=jnp.reshape(ranged_mobs_can_spawn_map, -1)
-        / jnp.sum(ranged_mobs_can_spawn_map),
+        p=ranged_spawn_p / ranged_spawn_p.sum(),
     )
     ranged_mob_position = jnp.array(
         [
@@ -2794,7 +2853,9 @@ def enchant(rng, state: EnvState, action):
     armour_targets = (
         unenchanted_armour + (unenchanted_armour.sum() == 0) * opposite_enchanted_armour
     )
-    armour_target = jax.random.choice(_rng, jnp.arange(4), shape=(), p=armour_targets)
+    armour_target = jax.random.choice(
+        _rng, jnp.arange(4), shape=(), p=armour_targets.astype(jnp.float32)
+    )
 
     is_enchanting = jnp.logical_or(
         is_enchanting_sword, jnp.logical_or(is_enchanting_bow, is_enchanting_armour)
@@ -3093,7 +3154,7 @@ def craftax_step(rng, state, action, params, static_params):
         (state.achievements.astype(jnp.int32) - init_achievements.astype(jnp.int32))
         * achievement_coefficients
     ).sum()
-    health_reward = (state.player_health - init_health) * 0.1
+    health_reward = (state.player_health - init_health) * jnp.float32(0.1)
     reward = achievement_reward + health_reward
 
     rng, _rng = jax.random.split(rng)
@@ -3103,5 +3164,8 @@ def craftax_step(rng, state, action, params, static_params):
         light_level=calculate_light_level(state.timestep + 1, params),
         state_rng=_rng,
     )
+
+    state = enforce_state_dtypes(state)
+    reward = jnp.float32(reward)
 
     return state, reward

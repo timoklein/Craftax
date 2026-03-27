@@ -110,6 +110,11 @@ class CraftaxPixelsEnv(environment.Environment):
         obs = jnp.where(done, obs_re, obs_st)
         return obs, state, reward, done, info
 
+    def discount(self, state, params):
+        return jnp.where(
+            self.is_terminal(state, params), jnp.float32(0.0), jnp.float32(1.0)
+        )
+
     @property
     def default_params(self) -> EnvParams:
         return EnvParams()

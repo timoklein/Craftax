@@ -532,7 +532,7 @@ def achievement_mapping(achievement_value):
 
 
 ACHIEVEMENT_REWARD_MAP = jnp.array(
-    [achievement_mapping(i) for i in range(len(Achievement))]
+    [achievement_mapping(i) for i in range(len(Achievement))], dtype=jnp.int32
 )
 
 
@@ -590,8 +590,10 @@ MOB_ACHIEVEMENT_MAP = jnp.array(
 
 # PRE-COMPUTATION
 TORCH_LIGHT_MAP = get_distance_map(jnp.array([4, 4], dtype=jnp.int32), (9, 9))
-TORCH_LIGHT_MAP /= 5.0
-TORCH_LIGHT_MAP = jnp.clip(1 - TORCH_LIGHT_MAP, 0.0, 1.0)
+TORCH_LIGHT_MAP /= jnp.float32(5.0)
+TORCH_LIGHT_MAP = jnp.clip(
+    jnp.float32(1.0) - TORCH_LIGHT_MAP, jnp.float32(0.0), jnp.float32(1.0)
+)
 
 
 # TEXTURES

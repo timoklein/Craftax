@@ -350,7 +350,7 @@ def is_near_block(state, block_type):
 
 def calculate_light_level(timestep, params):
     progress = (timestep / params.day_length) % 1 + jnp.float32(0.3)
-    return 1 - jnp.abs(jnp.cos(jnp.pi * progress)) ** 3
+    return jnp.float32(1) - jnp.abs(jnp.cos(jnp.float32(jnp.pi) * progress)) ** 3
 
 
 def is_in_mob(state: EnvState, position: jax.Array):

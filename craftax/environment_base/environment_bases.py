@@ -3,6 +3,7 @@ from functools import partial
 from typing import Union
 
 import jax
+import jax.numpy as jnp
 
 
 class EnvironmentNoAutoReset(object):
@@ -60,7 +61,9 @@ class EnvironmentNoAutoReset(object):
 
     def discount(self, state, params) -> float:
         """Return a discount of zero if the episode has terminated."""
-        return jax.lax.select(self.is_terminal(state, params), 0.0, 1.0)
+        return jnp.where(
+            self.is_terminal(state, params), jnp.float32(0.0), jnp.float32(1.0)
+        )
 
     @property
     def name(self) -> str:

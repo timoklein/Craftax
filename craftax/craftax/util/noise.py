@@ -16,15 +16,21 @@ def generate_perlin_noise_2d(
     delta = (res[0] / shape[0], res[1] / shape[1])
     d = (shape[0] // res[0], shape[1] // res[1])
     grid = (
-        jnp.mgrid[0 : res[0] : delta[0], 0 : res[1] : delta[1]].transpose(1, 2, 0) % 1
+        jnp.mgrid[0 : res[0] : delta[0], 0 : res[1] : delta[1]]
+        .transpose(1, 2, 0)
+        .astype(jnp.float32)
+        % 1
     )
 
     # Gradients
     rng, _rng = jax.random.split(rng)
+    two_pi = jnp.float32(2.0 * jnp.pi)
     if override_angles is not None:
-        angles = 2 * jnp.pi * override_angles
+        angles = two_pi * override_angles
     else:
-        angles = 2 * jnp.pi * jax.random.uniform(_rng, (res[0] + 1, res[1] + 1))
+        angles = two_pi * jax.random.uniform(
+            _rng, (res[0] + 1, res[1] + 1), dtype=jnp.float32
+        )
     gradients = jnp.dstack((jnp.cos(angles), jnp.sin(angles)))
     gradients = gradients.repeat(d[0], 0).repeat(d[1], 1)
     g00 = gradients[: -d[0], : -d[1]]
@@ -42,7 +48,7 @@ def generate_perlin_noise_2d(
     t = interpolant(grid)
     n0 = n00 * (1 - t[:, :, 0]) + t[:, :, 0] * n10
     n1 = n01 * (1 - t[:, :, 0]) + t[:, :, 0] * n11
-    return jnp.sqrt(2) * ((1 - t[:, :, 1]) * n0 + t[:, :, 1] * n1)
+    return jnp.sqrt(jnp.float32(2.0)) * ((1 - t[:, :, 1]) * n0 + t[:, :, 1] * n1)
 
 
 def generate_fractal_noise_2d(
