@@ -25,7 +25,7 @@ def update_plants_with_eat(state, plant_position, static_params):
 def add_items_from_chest(rng, state, inventory, is_opening_chest):
     # Wood (60%)
     rng, _rng = jax.random.split(rng)
-    is_looting_wood = jax.random.uniform(_rng) < 0.6
+    is_looting_wood = jax.random.uniform(_rng) < jnp.float32(0.6)
     rng, _rng = jax.random.split(rng)
     wood_loot_amount = (
         jax.random.randint(_rng, shape=(), minval=1, maxval=6) * is_looting_wood
@@ -33,7 +33,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Torch (60%)
     rng, _rng = jax.random.split(rng)
-    is_looting_torch = jax.random.uniform(_rng) < 0.6
+    is_looting_torch = jax.random.uniform(_rng) < jnp.float32(0.6)
     rng, _rng = jax.random.split(rng)
     torch_loot_amount = (
         jax.random.randint(_rng, shape=(), minval=4, maxval=8) * is_looting_torch
@@ -41,7 +41,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Ores (60%)
     rng, _rng = jax.random.split(rng)
-    is_looting_ore = jax.random.uniform(_rng) < 0.6
+    is_looting_ore = jax.random.uniform(_rng) < jnp.float32(0.6)
     rng, _rng = jax.random.split(rng)
     ore_loot_id = jax.random.choice(
         _rng,
@@ -80,7 +80,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Potion (50%)
     rng, _rng = jax.random.split(rng)
-    is_looting_potion = jax.random.uniform(_rng) < 0.5
+    is_looting_potion = jax.random.uniform(_rng) < jnp.float32(0.5)
     rng, _rng = jax.random.split(rng)
     potion_loot_index = jax.random.randint(_rng, shape=(), minval=0, maxval=6)
     rng, _rng = jax.random.split(rng)
@@ -88,7 +88,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Arrows (25%)
     rng, _rng = jax.random.split(rng)
-    is_looting_arrows = jax.random.uniform(_rng) < 0.25
+    is_looting_arrows = jax.random.uniform(_rng) < jnp.float32(0.25)
     rng, _rng = jax.random.split(rng)
     arrows_loot_amount = (
         jax.random.randint(_rng, shape=(), minval=1, maxval=5) * is_looting_arrows
@@ -96,7 +96,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Tools (20%)
     rng, _rng = jax.random.split(rng)
-    is_looting_tool = jax.random.uniform(_rng) < 0.2
+    is_looting_tool = jax.random.uniform(_rng) < jnp.float32(0.2)
     rng, _rng = jax.random.split(rng)
     tool_id = jax.random.randint(_rng, shape=(), minval=0, maxval=2)
 
@@ -353,7 +353,7 @@ def do_action(rng, state, action, static_params):
     is_mining_sapling = jnp.logical_and(
         state.map[state.player_level][block_position[0], block_position[1]]
         == BlockType.GRASS.value,
-        jax.random.uniform(_rng) < 0.1,
+        jax.random.uniform(_rng) < jnp.float32(0.1),
     )
 
     new_inventory = new_inventory.replace(
@@ -1159,7 +1159,7 @@ def update_mobs(rng, state, params, static_params):
 
         rng, _rng = jax.random.split(rng)
         close_to_player = jnp.logical_and(
-            close_to_player, jax.random.uniform(_rng) < 0.75
+            close_to_player, jax.random.uniform(_rng) < jnp.float32(0.75)
         )
 
         proposed_position = jax.lax.select(
@@ -1197,7 +1197,7 @@ def update_mobs(rng, state, params, static_params):
         ]
 
         melee_mob_damage = get_damage_done_to_player(
-            state, static_params, melee_mob_base_damage * (1 + 2.5 * state.is_sleeping)
+            state, static_params, melee_mob_base_damage * (1 + jnp.float32(2.5) * state.is_sleeping)
         )
 
         new_cooldown = jax.lax.select(
@@ -1463,7 +1463,7 @@ def update_mobs(rng, state, params, static_params):
         rng, _rng = jax.random.split(rng)
 
         proposed_position = jax.lax.select(
-            jax.random.uniform(_rng) > 0.85,
+            jax.random.uniform(_rng) > jnp.float32(0.85),
             proposed_position,
             random_move_proposed_position,
         )
@@ -1737,7 +1737,7 @@ def update_mobs(rng, state, params, static_params):
         # Bow enchantment
         arrow_damage_add = jnp.zeros(3, dtype=jnp.float32)
         arrow_damage_add = arrow_damage_add.at[state.bow_enchantment].set(
-            projectile_damage_vector[0] / 2
+            projectile_damage_vector[0] / jnp.float32(2.0)
         )
         arrow_damage_add = arrow_damage_add.at[0].set(0)
 

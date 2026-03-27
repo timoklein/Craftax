@@ -1,10 +1,12 @@
 import os
 import pathlib
 from enum import Enum
-import jax.numpy as jnp
+
 import imageio.v3 as iio
+import jax.numpy as jnp
 import numpy as np
 from PIL import Image
+
 from craftax.craftax.util.maths_utils import get_distance_map
 from craftax.environment_base.util import load_compressed_pickle, save_compressed_pickle
 
@@ -333,7 +335,7 @@ RANGED_MOB_TYPE_TO_PROJECTILE_TYPE_MAPPING = jnp.array(
 
 # GAME MECHANICS
 MONSTERS_KILLED_TO_CLEAR_LEVEL = 8
-BOSS_FIGHT_EXTRA_DAMAGE = 0.5
+BOSS_FIGHT_EXTRA_DAMAGE = jnp.float32(0.5)
 BOSS_FIGHT_SPAWN_TURNS = 7
 
 DIRECTIONS = jnp.concatenate(
