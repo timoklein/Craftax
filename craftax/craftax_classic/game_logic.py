@@ -288,7 +288,7 @@ def do_action(rng, state, action, static_params):
     rng, _rng = jax.random.split(rng)
     is_mining_sapling = jnp.logical_and(
         state.map[block_position[0], block_position[1]] == BlockType.GRASS.value,
-        jax.random.uniform(_rng) < 0.1,
+        jax.random.uniform(_rng, dtype=jnp.float32) < jnp.float32(0.1),
     )
 
     new_inventory = new_inventory.replace(
@@ -803,7 +803,7 @@ def update_mobs(rng, state, params, static_params):
         )
         rng, _rng = jax.random.split(rng)
         close_to_player = jnp.logical_and(
-            close_to_player, jax.random.uniform(_rng) < 0.75
+            close_to_player, jax.random.uniform(_rng, dtype=jnp.float32) < jnp.float32(0.75)
         )
 
         proposed_position = jax.lax.select(
@@ -1029,7 +1029,7 @@ def update_mobs(rng, state, params, static_params):
         rng, _rng = jax.random.split(rng)
 
         proposed_position = jax.lax.select(
-            jax.random.uniform(_rng) > 0.85,
+            jax.random.uniform(_rng, dtype=jnp.float32) > jnp.float32(0.85),
             proposed_position,
             random_move_proposed_position,
         )

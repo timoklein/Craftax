@@ -413,7 +413,7 @@ def render_craftax_pixels(state, block_pixel_size):
         1 - night_static_mask
     ) * map_pixels + night_static_mask * night_with_static[:, :, None]
 
-    night_pixels = jax.lax.select(daylight < 0.5, night_with_static, map_pixels)
+    night_pixels = jax.lax.select(daylight < jnp.float32(0.5), night_with_static, map_pixels)
 
     # Enhance
     enhance_factor = 0.4
