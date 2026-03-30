@@ -107,9 +107,9 @@ def render_craftax_symbolic(state: EnvState):
     padded_light_map = jnp.pad(
         state.light_map[state.player_level],
         (MAX_OBS_DIM + 2, MAX_OBS_DIM + 2),
-        constant_values=0.0,
+        constant_values=jnp.float32(0.0),
     )
-    light_map_view = jax.lax.dynamic_slice(padded_light_map, tl_corner, OBS_DIM) > 0.05
+    light_map_view = jax.lax.dynamic_slice(padded_light_map, tl_corner, OBS_DIM) > jnp.float32(0.05)
 
     # Mask out tiles and mobs in darkness
     all_map = all_map * light_map_view[:, :, None]
@@ -118,40 +118,40 @@ def render_craftax_symbolic(state: EnvState):
     # Inventory
     inventory = jnp.array(
         [
-            jnp.sqrt(state.inventory.wood) / 10.0,
-            jnp.sqrt(state.inventory.stone) / 10.0,
-            jnp.sqrt(state.inventory.coal) / 10.0,
-            jnp.sqrt(state.inventory.iron) / 10.0,
-            jnp.sqrt(state.inventory.diamond) / 10.0,
-            jnp.sqrt(state.inventory.sapphire) / 10.0,
-            jnp.sqrt(state.inventory.ruby) / 10.0,
-            jnp.sqrt(state.inventory.sapling) / 10.0,
-            jnp.sqrt(state.inventory.torches) / 10.0,
-            jnp.sqrt(state.inventory.arrows) / 10.0,
-            state.inventory.books / 2.0,
-            state.inventory.pickaxe / 4.0,
-            state.inventory.sword / 4.0,
+            jnp.sqrt(state.inventory.wood) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.stone) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.coal) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.iron) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.diamond) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.sapphire) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.ruby) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.sapling) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.torches) / jnp.float32(10.0),
+            jnp.sqrt(state.inventory.arrows) / jnp.float32(10.0),
+            state.inventory.books / jnp.float32(2.0),
+            state.inventory.pickaxe / jnp.float32(4.0),
+            state.inventory.sword / jnp.float32(4.0),
             state.sword_enchantment,
             state.bow_enchantment,
             state.inventory.bow,
         ]
     ).astype(jnp.float32)
 
-    potions = (jnp.sqrt(state.inventory.potions) / 10.0).astype(jnp.float32)
-    armour = (state.inventory.armour / 2.0).astype(jnp.float32)
-    armour_enchantments = state.armour_enchantments.astype(jnp.float32)
+    potions = jnp.sqrt(state.inventory.potions) / jnp.float32(10.0)
+    armour = state.inventory.armour / jnp.float32(2.0)
+    armour_enchantments = state.armour_enchantments
 
     intrinsics = jnp.array(
         [
-            state.player_health / 10.0,
-            state.player_food / 10.0,
-            state.player_drink / 10.0,
-            state.player_energy / 10.0,
-            state.player_mana / 10.0,
-            state.player_xp / 10.0,
-            state.player_dexterity / 10.0,
-            state.player_strength / 10.0,
-            state.player_intelligence / 10.0,
+            state.player_health / jnp.float32(10.0),
+            state.player_food / jnp.float32(10.0),
+            state.player_drink / jnp.float32(10.0),
+            state.player_energy / jnp.float32(10.0),
+            state.player_mana / jnp.float32(10.0),
+            state.player_xp / jnp.float32(10.0),
+            state.player_dexterity / jnp.float32(10.0),
+            state.player_strength / jnp.float32(10.0),
+            state.player_intelligence / jnp.float32(10.0),
         ]
     ).astype(jnp.float32)
 
@@ -164,7 +164,7 @@ def render_craftax_symbolic(state: EnvState):
             state.is_resting,
             state.learned_spells[0],
             state.learned_spells[1],
-            state.player_level / 10.0,
+            state.player_level / jnp.float32(10.0),
             state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL,
             is_boss_vulnerable(state),
         ],
