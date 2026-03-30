@@ -252,7 +252,7 @@ def generate_dungeon(rng, static_params, config):
     c_path_map = map != BlockType.WALL.value
     z = jnp.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
     adj_path_map = jsp.signal.convolve(c_path_map, z, mode="same")
-    adj_path_map = adj_path_map > 0.5
+    adj_path_map = adj_path_map > jnp.float32(0.5)
 
     rng, _rng = jax.random.split(rng)
     rare_map = jax.random.choice(
@@ -314,15 +314,21 @@ def generate_dungeon(rng, static_params, config):
 
 
 def generate_smoothworld(rng, static_params, player_position, config, params):
-    player_proximity_map = get_distance_map(player_position, static_params.map_size).astype(jnp.float32)
-    player_proximity_map_water = player_proximity_map / config.player_proximity_map_water_strength
-    player_proximity_map_water = jnp.clip(player_proximity_map_water, 0.0, config.player_proximity_map_water_max)
+    player_proximity_map = get_distance_map(
+        player_position, static_params.map_size
+    ).astype(jnp.float32)
+    player_proximity_map_water = (player_proximity_map / config.player_proximity_map_water_strength).astype(jnp.float32)
+    player_proximity_map_water = jnp.clip(
+        player_proximity_map_water,
+        jnp.float32(0.0),
+        jnp.float32(config.player_proximity_map_water_max),
+    )
 
-    player_proximity_map_mountain = player_proximity_map / config.player_proximity_map_mountain_strength
+    player_proximity_map_mountain = (player_proximity_map / config.player_proximity_map_mountain_strength).astype(jnp.float32)
     player_proximity_map_mountain = jnp.clip(
         player_proximity_map_mountain,
-        0.0,
-        config.player_proximity_map_mountain_max,
+        jnp.float32(0.0),
+        jnp.float32(config.player_proximity_map_mountain_max),
     )
 
     larger_res = (static_params.map_size[0] // 4, static_params.map_size[1] // 4)
@@ -337,7 +343,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         octaves=1,
         override_angles=params.fractal_noise_angles[0],
     )
-    water = water + player_proximity_map_water - 1.0
+    water = water + player_proximity_map_water - jnp.float32(1.0)
 
     # Water
     rng, _rng = jax.random.split(rng)
@@ -351,7 +357,7 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
     map = jnp.where(sand_map, config.coast_block, map)
 
     # Mountain vs grass
-    mountain_threshold = 0.7
+    mountain_threshold = jnp.float32(0.7)
 
     rng, _rng = jax.random.split(rng)
     mountain = (
@@ -362,9 +368,9 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
             octaves=1,
             override_angles=params.fractal_noise_angles[1],
         )
-        + 0.05
+        + jnp.float32(0.05)
     )
-    mountain = mountain + player_proximity_map_mountain - 1.0
+    mountain = mountain + player_proximity_map_mountain - jnp.float32(1.0)
     map = jnp.where(mountain > mountain_threshold, config.mountain_block, map)
 
     # Paths
@@ -376,17 +382,17 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         octaves=1,
         override_angles=params.fractal_noise_angles[2],
     )
-    path = jnp.logical_and(mountain > mountain_threshold, path_x > 0.8)
-    map = jnp.where(path > 0.5, config.path_block, map)
+    path = jnp.logical_and(mountain > mountain_threshold, path_x > jnp.float32(0.8))
+    map = jnp.where(path > jnp.float32(0.5), config.path_block, map)
 
     path_y = path_x.T
-    path = jnp.logical_and(mountain > mountain_threshold, path_y > 0.8)
-    map = jnp.where(path > 0.5, config.path_block, map)
+    path = jnp.logical_and(mountain > mountain_threshold, path_y > jnp.float32(0.8))
+    map = jnp.where(path > jnp.float32(0.5), config.path_block, map)
 
     # Caves
     rng, _rng = jax.random.split(rng)
-    caves = jnp.logical_and(mountain > 0.85, water > 0.4)
-    map = jnp.where(caves > 0.5, config.inner_mountain_block, map)
+    caves = jnp.logical_and(mountain > jnp.float32(0.85), water > jnp.float32(0.4))
+    map = jnp.where(caves > jnp.float32(0.5), config.inner_mountain_block, map)
 
     # Trees
     rng, _rng = jax.random.split(rng)
@@ -420,8 +426,8 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
 
     # Lava
     lava_map = jnp.logical_and(
-        mountain > 0.85,
-        tree_noise > 0.7,
+        mountain > jnp.float32(0.85),
+        tree_noise > jnp.float32(0.7),
     )
     map = jnp.where(lava_map, config.lava, map)
 
@@ -493,9 +499,10 @@ def generate_smoothworld(rng, static_params, player_position, config, params):
         dtype=jnp.int32,
     )
 
-    LIGHT_MAP_AROUND_LADDER = TORCH_LIGHT_MAP * (1 - config.default_light) + config.default_light * jnp.ones(
-        (9, 9), dtype=jnp.float32
-    )
+    LIGHT_MAP_AROUND_LADDER = (
+        TORCH_LIGHT_MAP * (jnp.float32(1.0) - config.default_light)
+        + config.default_light * jnp.ones((9, 9), dtype=jnp.float32)
+    ).astype(jnp.float32)
 
     light_map = jax.lax.dynamic_update_slice(
         light_map,

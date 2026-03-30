@@ -64,11 +64,11 @@ OVERWORLD_CONFIG = SmoothGenConfig(
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=5,
     player_proximity_map_mountain_max=1,
-    default_light=1.0,
-    water_threshold=0.7,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.8,
-    tree_threshold_perlin=0.5,
+    default_light=jnp.float32(1.0),
+    water_threshold=jnp.float32(0.7),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.8),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 GNOMISH_MINES_CONFIG = SmoothGenConfig(
@@ -100,12 +100,12 @@ GNOMISH_MINES_CONFIG = SmoothGenConfig(
     player_proximity_map_water_strength=5,
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=17,
-    player_proximity_map_mountain_max=1.5,
-    default_light=0.0,
-    water_threshold=0.7,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.8,
-    tree_threshold_perlin=0.5,
+    player_proximity_map_mountain_max=jnp.float32(1.5),
+    default_light=jnp.float32(0.0),
+    water_threshold=jnp.float32(0.7),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.8),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 TROLL_MINES_CONFIG = SmoothGenConfig(
@@ -137,12 +137,12 @@ TROLL_MINES_CONFIG = SmoothGenConfig(
     player_proximity_map_water_strength=5,
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=17,
-    player_proximity_map_mountain_max=1.5,
-    default_light=0.0,
-    water_threshold=0.7,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.8,
-    tree_threshold_perlin=0.5,
+    player_proximity_map_mountain_max=jnp.float32(1.5),
+    default_light=jnp.float32(0.0),
+    water_threshold=jnp.float32(0.7),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.8),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 FIRE_LEVEL_CONFIG = SmoothGenConfig(
@@ -175,11 +175,11 @@ FIRE_LEVEL_CONFIG = SmoothGenConfig(
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=5,
     player_proximity_map_mountain_max=1,
-    default_light=1.0,
-    water_threshold=0.5,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.8,
-    tree_threshold_perlin=0.5,
+    default_light=jnp.float32(1.0),
+    water_threshold=jnp.float32(0.5),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.8),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 ICE_LEVEL_CONFIG = SmoothGenConfig(
@@ -211,12 +211,12 @@ ICE_LEVEL_CONFIG = SmoothGenConfig(
     player_proximity_map_water_strength=5,
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=17,
-    player_proximity_map_mountain_max=1.5,
-    default_light=0.0,
-    water_threshold=0.5,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.4,
-    tree_threshold_perlin=0.5,
+    player_proximity_map_mountain_max=jnp.float32(1.5),
+    default_light=jnp.float32(0.0),
+    water_threshold=jnp.float32(0.5),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.4),
+    tree_threshold_perlin=jnp.float32(0.5),
 )
 
 BOSS_LEVEL_CONFIG = SmoothGenConfig(
@@ -258,11 +258,11 @@ BOSS_LEVEL_CONFIG = SmoothGenConfig(
     player_proximity_map_water_max=1,
     player_proximity_map_mountain_strength=10,
     player_proximity_map_mountain_max=10,
-    default_light=0.0,
-    water_threshold=0.7,
-    sand_threshold=0.6,
-    tree_threshold_uniform=0.95,
-    tree_threshold_perlin=-1.0,
+    default_light=jnp.float32(0.0),
+    water_threshold=jnp.float32(0.7),
+    sand_threshold=jnp.float32(0.6),
+    tree_threshold_uniform=jnp.float32(0.95),
+    tree_threshold_perlin=jnp.float32(-1.0),
 )
 
 ALL_SMOOTHGEN_CONFIGS = jax.tree_util.tree_map(
