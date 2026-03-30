@@ -1032,7 +1032,7 @@ def update_mobs(rng, state, params, static_params):
         ]
 
         melee_mob_damage = get_damage_done_to_player(
-            state, static_params, melee_mob_base_damage * (1 + 2.5 * state.is_sleeping)
+            state, static_params, melee_mob_base_damage * (1 + jnp.float32(2.5) * state.is_sleeping)
         )
 
         new_cooldown = jnp.where(
@@ -1451,7 +1451,9 @@ def update_mobs(rng, state, params, static_params):
 
         # Bow enchantment
         arrow_damage_add = jnp.zeros(3, dtype=jnp.float32)
-        arrow_damage_add = arrow_damage_add.at[state.bow_enchantment].set(projectile_damage_vector[0] / 2)
+        arrow_damage_add = arrow_damage_add.at[state.bow_enchantment].set(
+            projectile_damage_vector[0] / jnp.float32(2.0)
+        )
         arrow_damage_add = arrow_damage_add.at[0].set(0)
 
         projectile_damage_vector += jnp.where(
