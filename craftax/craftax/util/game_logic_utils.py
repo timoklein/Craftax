@@ -41,7 +41,7 @@ def attack_mob_class(
         in_mob = (mobs.position[state.player_level, mob_index] == position).all()
         return None, jnp.logical_and(in_mob, mobs.mask[state.player_level, mob_index])
 
-    _, is_attacking_mob_array = jax.lax.scan(is_attacking_mob_at_index, None, jnp.arange(mobs.mask.shape[1]))
+    _, is_attacking_mob_array = jax.lax.scan(is_attacking_mob_at_index, None, jnp.arange(mobs.mask.shape[1], dtype=jnp.int32))
     is_attacking_mob = is_attacking_mob_array.sum() > 0
     target_mob_index = jnp.argmax(is_attacking_mob_array)
 

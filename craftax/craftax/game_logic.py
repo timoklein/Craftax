@@ -60,7 +60,7 @@ def update_plants_with_eat(state, plant_position, static_params):
     def _is_plant(unused, index):
         return None, (state.growing_plants_positions[index] == plant_position).all()
 
-    _, is_plant = jax.lax.scan(_is_plant, None, jnp.arange(static_params.max_growing_plants))
+    _, is_plant = jax.lax.scan(_is_plant, None, jnp.arange(static_params.max_growing_plants, dtype=jnp.int32))
 
     plant_index = jnp.argmax(is_plant)
 
@@ -134,7 +134,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
     pickaxe_loot_level = (
         jax.random.choice(
             _rng,
-            (jnp.arange(4) + 1).astype(jnp.int32),
+            jnp.arange(1, 5, dtype=jnp.int32),
             shape=(),
             p=jnp.array([0.4, 0.3, 0.2, 0.1], dtype=jnp.float32),
         )
@@ -148,7 +148,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
     sword_loot_level = (
         jax.random.choice(
             _rng,
-            (jnp.arange(4) + 1).astype(jnp.int32),
+            jnp.arange(1, 5, dtype=jnp.int32),
             shape=(),
             p=jnp.array([0.4, 0.3, 0.2, 0.1], dtype=jnp.float32),
         )
@@ -730,7 +730,7 @@ def add_new_growing_plant(state, position, is_placing_sapling, static_params):
     def _is_empty(unused, index):
         return None, jnp.logical_not(state.growing_plants_mask[index])
 
-    _, is_empty = jax.lax.scan(_is_empty, None, jnp.arange(static_params.max_growing_plants))
+    _, is_empty = jax.lax.scan(_is_empty, None, jnp.arange(static_params.max_growing_plants, dtype=jnp.int32))
 
     plant_index = jnp.argmax(is_empty)
     is_an_empty_slot = is_empty.sum() > 0
@@ -984,7 +984,7 @@ def update_mobs(rng, state, params, static_params):
         rng, _rng = jax.random.split(rng)
         player_move_direction_index = jax.random.choice(
             _rng,
-            jnp.arange(2),
+            jnp.arange(2, dtype=jnp.int32),
             p=player_move_direction_index_p,
         )
 
@@ -1105,7 +1105,7 @@ def update_mobs(rng, state, params, static_params):
         return (_rng, state), None
 
     rng, _rng = jax.random.split(rng)
-    (rng, state), _ = jax.lax.scan(_move_melee_mob, (rng, state), jnp.arange(static_params.max_melee_mobs))
+    (rng, state), _ = jax.lax.scan(_move_melee_mob, (rng, state), jnp.arange(static_params.max_melee_mobs, dtype=jnp.int32))
 
     # Move passive_mobs
     def _move_passive_mob(rng_and_state, passive_mob_index):
@@ -1174,7 +1174,7 @@ def update_mobs(rng, state, params, static_params):
         return (rng, state), None
 
     rng, _rng = jax.random.split(rng)
-    (rng, state), _ = jax.lax.scan(_move_passive_mob, (rng, state), jnp.arange(static_params.max_passive_mobs))
+    (rng, state), _ = jax.lax.scan(_move_passive_mob, (rng, state), jnp.arange(static_params.max_passive_mobs, dtype=jnp.int32))
 
     # Move ranged_mobs
 
@@ -1199,7 +1199,7 @@ def update_mobs(rng, state, params, static_params):
         rng, _rng = jax.random.split(rng)
         player_move_direction_index = jax.random.choice(
             _rng,
-            jnp.arange(2),
+            jnp.arange(2, dtype=jnp.int32),
             p=player_move_direction_index_p,
         )
 
@@ -1349,7 +1349,7 @@ def update_mobs(rng, state, params, static_params):
         return (rng, state), None
 
     rng, _rng = jax.random.split(rng)
-    (rng, state), _ = jax.lax.scan(_move_ranged_mob, (rng, state), jnp.arange(static_params.max_ranged_mobs))
+    (rng, state), _ = jax.lax.scan(_move_ranged_mob, (rng, state), jnp.arange(static_params.max_ranged_mobs, dtype=jnp.int32))
 
     # Move projectiles
     def _move_mob_projectile(rng_and_state, projectile_index):
@@ -1430,7 +1430,7 @@ def update_mobs(rng, state, params, static_params):
     (rng, state), _ = jax.lax.scan(
         _move_mob_projectile,
         (rng, state),
-        jnp.arange(static_params.max_mob_projectiles),
+        jnp.arange(static_params.max_mob_projectiles, dtype=jnp.int32),
     )
 
     def _move_player_projectile(rng_and_state, projectile_index):
@@ -1528,7 +1528,7 @@ def update_mobs(rng, state, params, static_params):
     (rng, state), _ = jax.lax.scan(
         _move_player_projectile,
         (rng, state),
-        jnp.arange(static_params.max_player_projectiles),
+        jnp.arange(static_params.max_player_projectiles, dtype=jnp.int32),
     )
 
     return state
@@ -1705,7 +1705,7 @@ def update_plants(state, static_params):
     new_map, _ = jax.lax.scan(
         _set_plant_block,
         state.map[0],
-        jnp.arange(static_params.max_growing_plants),
+        jnp.arange(static_params.max_growing_plants, dtype=jnp.int32),
     )
 
     new_whole_map = state.map.at[0].set(new_map)
@@ -1795,7 +1795,7 @@ def spawn_mobs(state, rng, params, static_params):
     passive_spawn_p = jnp.reshape(passive_mobs_can_spawn_map, -1).astype(jnp.float32)
     passive_mob_position = jax.random.choice(
         _rng,
-        jnp.arange(static_params.map_size[0] * static_params.map_size[1]),
+        jnp.arange(static_params.map_size[0] * static_params.map_size[1], dtype=jnp.int32),
         shape=(1,),
         p=passive_spawn_p / passive_spawn_p.sum(),
     )
@@ -1891,7 +1891,7 @@ def spawn_mobs(state, rng, params, static_params):
     melee_spawn_p = jnp.reshape(melee_mobs_can_spawn_map, -1).astype(jnp.float32)
     melee_mob_position = jax.random.choice(
         _rng,
-        jnp.arange(static_params.map_size[0] * static_params.map_size[1]),
+        jnp.arange(static_params.map_size[0] * static_params.map_size[1], dtype=jnp.int32),
         shape=(1,),
         p=melee_spawn_p / melee_spawn_p.sum(),
     )
@@ -1980,7 +1980,7 @@ def spawn_mobs(state, rng, params, static_params):
     ranged_spawn_p = jnp.reshape(ranged_mobs_can_spawn_map, -1).astype(jnp.float32)
     ranged_mob_position = jax.random.choice(
         _rng,
-        jnp.arange(static_params.map_size[0] * static_params.map_size[1]),
+        jnp.arange(static_params.map_size[0] * static_params.map_size[1], dtype=jnp.int32),
         shape=(1,),
         p=ranged_spawn_p / ranged_spawn_p.sum(),
     )
@@ -2257,7 +2257,7 @@ def read_book(rng, state, action):
     spells_to_learn /= spells_to_learn.sum()
 
     rng, _rng = jax.random.split(rng)
-    spell_to_learn_index = jax.random.choice(_rng, jnp.arange(2), shape=(), p=spells_to_learn)
+    spell_to_learn_index = jax.random.choice(_rng, jnp.arange(2, dtype=jnp.int32), shape=(), p=spells_to_learn)
 
     learn_spell_achievement = jnp.where(
         spell_to_learn_index,
@@ -2323,7 +2323,7 @@ def enchant(rng, state: EnvState, action):
     opposite_enchanted_armour = jnp.logical_and(state.armour_enchantments != 0, state.armour_enchantments != enchantment_type)
 
     armour_targets = unenchanted_armour + (unenchanted_armour.sum() == 0) * opposite_enchanted_armour
-    armour_target = jax.random.choice(_rng, jnp.arange(4), shape=(), p=armour_targets.astype(jnp.float32))
+    armour_target = jax.random.choice(_rng, jnp.arange(4, dtype=jnp.int32), shape=(), p=armour_targets.astype(jnp.float32))
 
     is_enchanting = jnp.logical_or(is_enchanting_sword, jnp.logical_or(is_enchanting_bow, is_enchanting_armour))
 

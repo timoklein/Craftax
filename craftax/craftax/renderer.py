@@ -62,7 +62,7 @@ def render_craftax_symbolic(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.melee_mobs),
             0,
         ),
-        jnp.arange(state.melee_mobs.mask.shape[1]),
+        jnp.arange(state.melee_mobs.mask.shape[1], dtype=jnp.int32),
     )
     (mob_map, _, _), _ = jax.lax.scan(
         _add_mob_to_map,
@@ -71,7 +71,7 @@ def render_craftax_symbolic(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.passive_mobs),
             1,
         ),
-        jnp.arange(state.passive_mobs.mask.shape[1]),
+        jnp.arange(state.passive_mobs.mask.shape[1], dtype=jnp.int32),
     )
     (mob_map, _, _), _ = jax.lax.scan(
         _add_mob_to_map,
@@ -80,7 +80,7 @@ def render_craftax_symbolic(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.ranged_mobs),
             2,
         ),
-        jnp.arange(state.ranged_mobs.mask.shape[1]),
+        jnp.arange(state.ranged_mobs.mask.shape[1], dtype=jnp.int32),
     )
     (mob_map, _, _), _ = jax.lax.scan(
         _add_mob_to_map,
@@ -89,7 +89,7 @@ def render_craftax_symbolic(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.mob_projectiles),
             3,
         ),
-        jnp.arange(state.mob_projectiles.mask.shape[1]),
+        jnp.arange(state.mob_projectiles.mask.shape[1], dtype=jnp.int32),
     )
     (mob_map, _, _), _ = jax.lax.scan(
         _add_mob_to_map,
@@ -98,7 +98,7 @@ def render_craftax_symbolic(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.player_projectiles),
             4,
         ),
-        jnp.arange(state.player_projectiles.mask.shape[1]),
+        jnp.arange(state.player_projectiles.mask.shape[1], dtype=jnp.int32),
     )
 
     all_map = jnp.concatenate([map_view_one_hot, item_map_view_one_hot, mob_map], axis=-1)
@@ -241,7 +241,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             None,
         )
 
-    map_pixels, _ = jax.lax.scan(_add_block_type_to_pixels, map_pixels, jnp.arange(len(BlockType)))
+    map_pixels, _ = jax.lax.scan(_add_block_type_to_pixels, map_pixels, jnp.arange(len(BlockType), dtype=jnp.int32))
 
     # Items
     padded_item_map = jnp.pad(
@@ -280,7 +280,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
 
         return pixels, None
 
-    map_pixels, _ = jax.lax.scan(_add_item_type_to_pixels, map_pixels, jnp.arange(1, len(ItemType)))
+    map_pixels, _ = jax.lax.scan(_add_item_type_to_pixels, map_pixels, jnp.arange(1, len(ItemType), dtype=jnp.int32))
 
     # Render player
     player_texture_index = jnp.where(state.is_sleeping, 4, state.player_direction - 1)
@@ -342,7 +342,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             textures["melee_mob_textures"],
             textures["melee_mob_texture_alphas"],
         ),
-        jnp.arange(state.melee_mobs.mask.shape[1]),
+        jnp.arange(state.melee_mobs.mask.shape[1], dtype=jnp.int32),
     )
 
     (map_pixels, _, _, _), _ = jax.lax.scan(
@@ -353,7 +353,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             textures["passive_mob_textures"],
             textures["passive_mob_texture_alphas"],
         ),
-        jnp.arange(state.passive_mobs.mask.shape[1]),
+        jnp.arange(state.passive_mobs.mask.shape[1], dtype=jnp.int32),
     )
 
     (map_pixels, _, _, _), _ = jax.lax.scan(
@@ -364,7 +364,7 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
             textures["ranged_mob_textures"],
             textures["ranged_mob_texture_alphas"],
         ),
-        jnp.arange(state.ranged_mobs.mask.shape[1]),
+        jnp.arange(state.ranged_mobs.mask.shape[1], dtype=jnp.int32),
     )
 
     def _add_projectile_to_pixels(carry, projectile_index):
@@ -444,13 +444,13 @@ def render_craftax_pixels(state, block_pixel_size, do_night_noise=True):
     (map_pixels, _, _), _ = jax.lax.scan(
         _add_projectile_to_pixels,
         (map_pixels, state.mob_projectiles, state.mob_projectile_directions),
-        jnp.arange(state.mob_projectiles.mask.shape[1]),
+        jnp.arange(state.mob_projectiles.mask.shape[1], dtype=jnp.int32),
     )
 
     (map_pixels, _, _), _ = jax.lax.scan(
         _add_projectile_to_pixels,
         (map_pixels, state.player_projectiles, state.player_projectile_directions),
-        jnp.arange(state.player_projectiles.mask.shape[1]),
+        jnp.arange(state.player_projectiles.mask.shape[1], dtype=jnp.int32),
     )
 
     # Apply darkness (underground)
@@ -872,7 +872,7 @@ def render_craftax_text(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.melee_mobs),
             0,
         ),
-        jnp.arange(state.melee_mobs.mask.shape[1]),
+        jnp.arange(state.melee_mobs.mask.shape[1], dtype=jnp.int32),
     )
     (mob_map, _, _), _ = jax.lax.scan(
         _add_mob_to_map,
@@ -881,7 +881,7 @@ def render_craftax_text(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.passive_mobs),
             1,
         ),
-        jnp.arange(state.passive_mobs.mask.shape[1]),
+        jnp.arange(state.passive_mobs.mask.shape[1], dtype=jnp.int32),
     )
     (mob_map, _, _), _ = jax.lax.scan(
         _add_mob_to_map,
@@ -890,7 +890,7 @@ def render_craftax_text(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.ranged_mobs),
             2,
         ),
-        jnp.arange(state.ranged_mobs.mask.shape[1]),
+        jnp.arange(state.ranged_mobs.mask.shape[1], dtype=jnp.int32),
     )
     (mob_map, _, _), _ = jax.lax.scan(
         _add_mob_to_map,
@@ -899,7 +899,7 @@ def render_craftax_text(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.mob_projectiles),
             3,
         ),
-        jnp.arange(state.mob_projectiles.mask.shape[1]),
+        jnp.arange(state.mob_projectiles.mask.shape[1], dtype=jnp.int32),
     )
     (mob_map, _, _), _ = jax.lax.scan(
         _add_mob_to_map,
@@ -908,7 +908,7 @@ def render_craftax_text(state: EnvState):
             jax.tree_util.tree_map(lambda x: x[state.player_level], state.player_projectiles),
             4,
         ),
-        jnp.arange(state.player_projectiles.mask.shape[1]),
+        jnp.arange(state.player_projectiles.mask.shape[1], dtype=jnp.int32),
     )
 
     def mob_id_to_name(id):
