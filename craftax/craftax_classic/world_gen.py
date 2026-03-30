@@ -47,9 +47,9 @@ def generate_world(rng, params, static_params):
     # c_water_map = jsp.signal.convolve(c_water_map, z, mode="same")
 
     sand_map = jnp.logical_and(
-        water < 0.75,
+        water < jnp.float32(0.75),
         jnp.logical_and(
-            water > 0.6,
+            water > jnp.float32(0.6),
             map != BlockType.WATER.value,
         ),
     )
@@ -62,7 +62,7 @@ def generate_world(rng, params, static_params):
     map = jnp.where(sand_map, BlockType.SAND.value, map)
 
     # Mountain vs grass
-    mountain_threshold = 0.7
+    mountain_threshold = jnp.float32(0.7)
 
     rng, _rng = jax.random.split(rng)
     mountain = generate_fractal_noise_2d(
@@ -84,17 +84,17 @@ def generate_world(rng, params, static_params):
         octaves=1,
         override_angles=fractal_noise_angles[2],
     )
-    path = jnp.logical_and(mountain > mountain_threshold, path_x > 0.8)
-    map = jnp.where(path > 0.5, BlockType.PATH.value, map)
+    path = jnp.logical_and(mountain > mountain_threshold, path_x > jnp.float32(0.8))
+    map = jnp.where(path > jnp.float32(0.5), BlockType.PATH.value, map)
 
     path_y = path_x.T
-    path = jnp.logical_and(mountain > mountain_threshold, path_y > 0.8)
-    map = jnp.where(path > 0.5, BlockType.PATH.value, map)
+    path = jnp.logical_and(mountain > mountain_threshold, path_y > jnp.float32(0.8))
+    map = jnp.where(path > jnp.float32(0.5), BlockType.PATH.value, map)
 
     # Caves
     rng, _rng = jax.random.split(rng)
-    caves = jnp.logical_and(mountain > 0.85, water > 0.4)
-    map = jnp.where(caves > 0.5, BlockType.PATH.value, map)
+    caves = jnp.logical_and(mountain > jnp.float32(0.85), water > jnp.float32(0.4))
+    map = jnp.where(caves > jnp.float32(0.5), BlockType.PATH.value, map)
 
     # Ores
     rng, _rng = jax.random.split(rng)
@@ -131,8 +131,8 @@ def generate_world(rng, params, static_params):
 
     # Lava
     lava_map = jnp.logical_and(
-        mountain > 0.85,
-        tree_noise > 0.7,
+        mountain > jnp.float32(0.85),
+        tree_noise > jnp.float32(0.7),
     )
     map = jnp.where(lava_map, BlockType.LAVA.value, map)
 
